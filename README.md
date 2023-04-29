@@ -10,3 +10,5 @@ Past Projects done
 **Comparison of algorithms to solve TSP** is a algorithm and conference paper that concludes the 3 algorithms me and my groupmates had used to solve the Travelling Salesman Problem(TSP). The 3 algorithms are Lin-kernighan, Nearest Neighbor and Ant colony Optimization.
 
 **Software-Grp-F** is a Software Engineering Group Project is a full academic year project done by me and my groupmates which is digitalizing a physical board game by working closely with our client and supervisor.
+
+**COMP2042YeohZiSong** is about debugging a bugged 2048 in java within a month and add in creative scenes by using SceneBuilder with javafx.
