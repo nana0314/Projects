@@ -3,12 +3,10 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView 
 import { useAttendance } from '../context/AttendanceContext';
 
 const SettingsScreen = () => {
-  const { emergencyContact, setEmergencyContact, userEmail, setUserEmail, userName, setUserName, userId, friends, addFriend } = useAttendance();
+  const { emergencyContact, setEmergencyContact, userEmail, setUserEmail, userName, setUserName, userId } = useAttendance();
   const [contactInput, setContactInput] = useState(emergencyContact || '');
   const [emailInput, setEmailInput] = useState(userEmail || '');
   const [nameInput, setNameInput] = useState(userName || '');
-  const [friendNameInput, setFriendNameInput] = useState('');
-  const [friendIdInput, setFriendIdInput] = useState('');
 
   useEffect(() => {
     if (userName) {
@@ -21,8 +19,12 @@ const SettingsScreen = () => {
       Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
-    await setEmergencyContact(contactInput);
-    Alert.alert('Success', 'Emergency contact updated');
+    const success = await setEmergencyContact(contactInput);
+    if (success) {
+      Alert.alert('Success', 'Emergency contact updated');
+    } else {
+      Alert.alert('Not Found', 'Email not found');
+    }
   };
 
   const handleSaveEmail = async () => {
@@ -39,30 +41,14 @@ const SettingsScreen = () => {
           Alert.alert('Error', 'Please enter a name');
           return;
       }
-      await setUserName(nameInput.trim());
-      Alert.alert('Success', 'Your name has been saved');
+      const success = await setUserName(nameInput.trim());
+      if (success) {
+          Alert.alert('Success', 'Your name has been saved and cannot be changed');
+      } else {
+          Alert.alert('Cannot Change', 'Your name has already been set and cannot be modified');
+      }
   };
 
-  const handleAddFriend = async () => {
-      if (!friendNameInput.trim()) {
-          Alert.alert('Error', 'Please enter friend\'s name');
-          return;
-      }
-      if (!friendIdInput.trim()) {
-          Alert.alert('Error', 'Please enter friend\'s ID key');
-          return;
-      }
-      // Format ID key to ensure it starts with #
-      const formattedId = friendIdInput.trim().startsWith('#') ? friendIdInput.trim() : `#${friendIdInput.trim()}`;
-      const success = await addFriend({ name: friendNameInput.trim(), idKey: formattedId });
-      if (success) {
-          setFriendNameInput('');
-          setFriendIdInput('');
-          Alert.alert('Success', 'Friend added');
-      } else {
-          Alert.alert('Error', 'Friend with this ID key already exists');
-      }
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -70,16 +56,30 @@ const SettingsScreen = () => {
 
       <View style={styles.section}>
         <Text style={styles.label}>Your Name</Text>
-        <TextInput
-          style={styles.input}
-          value={nameInput}
-          onChangeText={setNameInput}
-          placeholder="Enter your name"
-          autoCapitalize="words"
-        />
-        <TouchableOpacity style={styles.button} onPress={handleSaveName}>
-          <Text style={styles.buttonText}>Save Name</Text>
-        </TouchableOpacity>
+        {userName ? (
+          // Name already set - show as read-only
+          <>
+            <View style={styles.readOnlyContainer}>
+              <Text style={styles.readOnlyText}>{userName}</Text>
+            </View>
+            <Text style={styles.infoText}>Your name is set and cannot be changed</Text>
+          </>
+        ) : (
+          // Name not set - allow input
+          <>
+            <TextInput
+              style={styles.input}
+              value={nameInput}
+              onChangeText={setNameInput}
+              placeholder="Enter your name"
+              autoCapitalize="words"
+            />
+            <TouchableOpacity style={styles.button} onPress={handleSaveName}>
+              <Text style={styles.buttonText}>Save Name</Text>
+            </TouchableOpacity>
+            <Text style={styles.warningTextSmall}>⚠️ Once saved, your name cannot be changed</Text>
+          </>
+        )}
         {userId && (
           <Text style={styles.idDisplay}>Your ID Key: {userId}</Text>
         )}
@@ -115,36 +115,6 @@ const SettingsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Add Friends</Text>
-        <TextInput
-          style={styles.input}
-          value={friendNameInput}
-          onChangeText={setFriendNameInput}
-          placeholder="Friend's name"
-          autoCapitalize="words"
-        />
-        <TextInput
-          style={styles.input}
-          value={friendIdInput}
-          onChangeText={setFriendIdInput}
-          placeholder="Friend's ID key (e.g., #1111)"
-          autoCapitalize="none"
-        />
-        <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={handleAddFriend}>
-          <Text style={styles.secondaryButtonText}>Add Friend</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.friendsList}>
-          {friends.length > 0 ? (
-            friends.map((friend, index) => (
-              <Text key={index} style={styles.friendItem}>• {friend.name} ({friend.idKey})</Text>
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No friends added yet</Text>
-          )}
-        </View>
-      </View>
     </ScrollView>
   );
 };
@@ -202,14 +172,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  friendsList: {
-    marginTop: 15,
-  },
-  friendItem: {
-    fontSize: 16,
-    color: '#444',
-    paddingVertical: 4,
-  },
   idDisplay: {
     fontSize: 16,
     color: '#007AFF',
@@ -219,6 +181,31 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#999',
+    fontStyle: 'italic',
+  },
+  readOnlyContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  readOnlyText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 10,
+  },
+  warningTextSmall: {
+    fontSize: 12,
+    color: '#ff9500',
+    marginTop: 5,
     fontStyle: 'italic',
   },
 });

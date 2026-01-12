@@ -4,18 +4,22 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { AttendanceProvider } from './src/context/AttendanceContext';
 import HomeScreen from './src/screens/HomeScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
 import { checkInactivity, getEmergencyContact } from './src/utils/storage';
 import * as MailComposer from 'expo-mail-composer';
 import { Platform, Alert } from 'react-native';
+// Initialize Firebase
+import './src/config/firebase';
 
 const BACKGROUND_FETCH_TASK = 'background-fetch-task';
 
 export type RootStackParamList = {
   Home: undefined;
   Settings: undefined;
+  Friends: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -84,6 +88,7 @@ export default function App() {
         <Stack.Navigator>
           <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Attendance' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Friends" component={FriendsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AttendanceProvider>

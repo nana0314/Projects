@@ -22,7 +22,7 @@ const HomeScreen = () => {
       if (status.inactive) {
           Alert.alert(
               "Warning",
-              "You haven't signed in for 2 days! Your emergency contact will be notified."
+              "You haven't signed in for 2 days! Your emergency contact email will receive a notification."
           );
           // Here we would trigger the email sending logic
       }
@@ -45,6 +45,13 @@ const HomeScreen = () => {
 
       <TouchableOpacity style={styles.button} onPress={handleAttendance}>
         <Text style={styles.buttonText}>Check In</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.button, styles.secondaryButton]} 
+        onPress={() => navigation.navigate('Friends')}
+      >
+        <Text style={styles.secondaryButtonText}>Friends</Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
