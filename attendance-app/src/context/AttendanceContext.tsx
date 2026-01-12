@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { getLastAttendance, saveAttendance, getEmergencyContact, saveEmergencyContact, getUserEmail, saveUserEmail } from '../utils/storage';
+import { getLastAttendance, saveAttendance, getEmergencyContact, saveEmergencyContact, getUserEmail, saveUserEmail, getUserName, saveUserName, getUserId, getFriends, addFriend as addFriendStorage, Friend } from '../utils/storage';
 
 interface AttendanceContextType {
   lastAttendance: Date | null;
@@ -8,6 +8,11 @@ interface AttendanceContextType {
   setEmergencyContact: (email: string) => Promise<void>;
   userEmail: string | null;
   setUserEmail: (email: string) => Promise<void>;
+  userName: string | null;
+  setUserName: (name: string) => Promise<void>;
+  userId: string | null;
+  friends: Friend[];
+  addFriend: (friend: Friend) => Promise<boolean>;
 }
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
@@ -16,6 +21,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [lastAttendance, setLastAttendance] = useState<Date | null>(null);
   const [emergencyContact, setEmergencyContactState] = useState<string | null>(null);
   const [userEmail, setUserEmailState] = useState<string | null>(null);
+  const [userName, setUserNameState] = useState<string | null>(null);
+  const [userId, setUserIdState] = useState<string | null>(null);
+  const [friends, setFriendsState] = useState<Friend[]>([]);
 
   useEffect(() => {
     loadData();
@@ -28,6 +36,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setEmergencyContactState(contact);
     const email = await getUserEmail();
     setUserEmailState(email);
+    const name = await getUserName();
+    setUserNameState(name);
+    const id = await getUserId();
+    setUserIdState(id);
+    const friendsList = await getFriends();
+    setFriendsState(friendsList);
   };
 
   const markAttendance = async () => {
@@ -45,10 +59,24 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const setUserEmail = async (email: string) => {
       await saveUserEmail(email);
       setUserEmailState(email);
-  }
+  };
+
+  const setUserName = async (name: string) => {
+      await saveUserName(name);
+      setUserNameState(name);
+  };
+
+  const addFriend = async (friend: Friend) => {
+      const success = await addFriendStorage(friend);
+      if (success) {
+          const friendsList = await getFriends();
+          setFriendsState(friendsList);
+      }
+      return success;
+  };
 
   return (
-    <AttendanceContext.Provider value={{ lastAttendance, markAttendance, emergencyContact, setEmergencyContact, userEmail, setUserEmail }}>
+    <AttendanceContext.Provider value={{ lastAttendance, markAttendance, emergencyContact, setEmergencyContact, userEmail, setUserEmail, userName, setUserName, userId, friends, addFriend }}>
       {children}
     </AttendanceContext.Provider>
   );

@@ -29,9 +29,10 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-        "expo-notifications",
-        "expo-task-manager",
-        "expo-background-fetch"
+      "expo-notifications",
+      "expo-task-manager",
+      "expo-background-fetch",
+      "expo-mail-composer"
     ]
   }
 }

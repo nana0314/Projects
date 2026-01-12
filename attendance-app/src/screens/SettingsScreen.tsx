@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useAttendance } from '../context/AttendanceContext';
 
 const SettingsScreen = () => {
-  const { emergencyContact, setEmergencyContact, userEmail, setUserEmail } = useAttendance();
+  const { emergencyContact, setEmergencyContact, userEmail, setUserEmail, userName, setUserName, userId, friends, addFriend } = useAttendance();
   const [contactInput, setContactInput] = useState(emergencyContact || '');
   const [emailInput, setEmailInput] = useState(userEmail || '');
-  // Mock friends list
-  const [friendInput, setFriendInput] = useState('');
-  const [friends, setFriends] = useState<string[]>([]);
+  const [nameInput, setNameInput] = useState(userName || '');
+  const [friendNameInput, setFriendNameInput] = useState('');
+  const [friendIdInput, setFriendIdInput] = useState('');
+
+  useEffect(() => {
+    if (userName) {
+      setNameInput(userName);
+    }
+  }, [userName]);
 
   const handleSaveContact = async () => {
     if (!contactInput.includes('@')) {
@@ -26,19 +32,58 @@ const SettingsScreen = () => {
       }
       await setUserEmail(emailInput);
       Alert.alert('Success', 'Your email updated');
-  }
+  };
 
-  const addFriend = () => {
-    if (friendInput.trim()) {
-      setFriends([...friends, friendInput]);
-      setFriendInput('');
-      Alert.alert('Success', 'Friend added (Mock)');
-    }
+  const handleSaveName = async () => {
+      if (!nameInput.trim()) {
+          Alert.alert('Error', 'Please enter a name');
+          return;
+      }
+      await setUserName(nameInput.trim());
+      Alert.alert('Success', 'Your name has been saved');
+  };
+
+  const handleAddFriend = async () => {
+      if (!friendNameInput.trim()) {
+          Alert.alert('Error', 'Please enter friend\'s name');
+          return;
+      }
+      if (!friendIdInput.trim()) {
+          Alert.alert('Error', 'Please enter friend\'s ID key');
+          return;
+      }
+      // Format ID key to ensure it starts with #
+      const formattedId = friendIdInput.trim().startsWith('#') ? friendIdInput.trim() : `#${friendIdInput.trim()}`;
+      const success = await addFriend({ name: friendNameInput.trim(), idKey: formattedId });
+      if (success) {
+          setFriendNameInput('');
+          setFriendIdInput('');
+          Alert.alert('Success', 'Friend added');
+      } else {
+          Alert.alert('Error', 'Friend with this ID key already exists');
+      }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Settings</Text>
+
+      <View style={styles.section}>
+        <Text style={styles.label}>Your Name</Text>
+        <TextInput
+          style={styles.input}
+          value={nameInput}
+          onChangeText={setNameInput}
+          placeholder="Enter your name"
+          autoCapitalize="words"
+        />
+        <TouchableOpacity style={styles.button} onPress={handleSaveName}>
+          <Text style={styles.buttonText}>Save Name</Text>
+        </TouchableOpacity>
+        {userId && (
+          <Text style={styles.idDisplay}>Your ID Key: {userId}</Text>
+        )}
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.label}>Your Email</Text>
@@ -74,18 +119,30 @@ const SettingsScreen = () => {
         <Text style={styles.label}>Add Friends</Text>
         <TextInput
           style={styles.input}
-          value={friendInput}
-          onChangeText={setFriendInput}
-          placeholder="Friend's name or email"
+          value={friendNameInput}
+          onChangeText={setFriendNameInput}
+          placeholder="Friend's name"
+          autoCapitalize="words"
         />
-        <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={addFriend}>
+        <TextInput
+          style={styles.input}
+          value={friendIdInput}
+          onChangeText={setFriendIdInput}
+          placeholder="Friend's ID key (e.g., #1111)"
+          autoCapitalize="none"
+        />
+        <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={handleAddFriend}>
           <Text style={styles.secondaryButtonText}>Add Friend</Text>
         </TouchableOpacity>
         
         <View style={styles.friendsList}>
-          {friends.map((friend, index) => (
-            <Text key={index} style={styles.friendItem}>• {friend}</Text>
-          ))}
+          {friends.length > 0 ? (
+            friends.map((friend, index) => (
+              <Text key={index} style={styles.friendItem}>• {friend.name} ({friend.idKey})</Text>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No friends added yet</Text>
+          )}
         </View>
       </View>
     </ScrollView>
@@ -152,6 +209,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#444',
     paddingVertical: 4,
+  },
+  idDisplay: {
+    fontSize: 16,
+    color: '#007AFF',
+    marginTop: 10,
+    fontWeight: '600',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
 
