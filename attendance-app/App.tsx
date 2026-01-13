@@ -8,9 +8,7 @@ import FriendsScreen from './src/screens/FriendsScreen';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
-import { checkInactivity, getEmergencyContact } from './src/utils/storage';
-import * as MailComposer from 'expo-mail-composer';
-import { Platform, Alert } from 'react-native';
+import { checkEmergencyContactInactivity } from './src/utils/storage';
 // Initialize Firebase
 import './src/config/firebase';
 
@@ -27,29 +25,24 @@ const Stack = createStackNavigator<RootStackParamList>();
 // Define background task
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   try {
-    const { inactive, days } = await checkInactivity();
-    if (inactive) {
-      const contact = await getEmergencyContact();
-      if (contact) {
-        // Send local notification
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Check-in Alert",
-            body: `You haven't checked in for ${days} days! Emergency contact will be notified.`,
-          },
-          trigger: null,
-        });
+    const { inactive, days, contactName } = await checkEmergencyContactInactivity();
+    if (inactive && contactName) {
+      // Send local notification to the user about their emergency contact
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Emergency Contact Alert",
+          body: `${contactName} hasn't checked in for ${days} days!`,
+        },
+        trigger: null,
+      });
 
-        // In a real app with backend, the backend would send the email.
-        // For this standalone app, we can only prepare the email or use a cloud function.
-        // Since we don't have a backend, we'll simulate "sending" by logging here.
-        console.log(`[BACKGROUND] Sending emergency email to ${contact}`);
-        
-        return BackgroundFetch.BackgroundFetchResult.NewData;
-      }
+      console.log(`[BACKGROUND] Emergency contact ${contactName} hasn't checked in for ${days} days`);
+      
+      return BackgroundFetch.BackgroundFetchResult.NewData;
     }
     return BackgroundFetch.BackgroundFetchResult.NoData;
   } catch (error) {
+    console.error('[BACKGROUND] Error in background task:', error);
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useAttendance } from '../context/AttendanceContext';
-import { getFriendLastAttendance, hasCheckedInToday } from '../utils/storage';
+import { getFriendLastAttendance, hasCheckedInToday, Friend } from '../utils/storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
@@ -9,7 +9,7 @@ import { RootStackParamList } from '../../App';
 type FriendsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Friends'>;
 
 const FriendsScreen = () => {
-  const { friends, addFriend, updateFriendNickname } = useAttendance();
+  const { friends, addFriend, updateFriendNickname, deleteFriend, emergencyContactUserId, setEmergencyContactByFriendId, unsetEmergencyContact } = useAttendance();
   const navigation = useNavigation<FriendsScreenNavigationProp>();
   const [friendIdInput, setFriendIdInput] = useState('');
   const [friendStatuses, setFriendStatuses] = useState<Record<string, boolean>>({});
@@ -86,6 +86,49 @@ const FriendsScreen = () => {
     }));
   };
 
+  const handleDeleteFriend = (friend: Friend) => {
+    Alert.alert(
+      'Delete Friend',
+      `Are you sure you want to remove ${friend.nickname || friend.name} from your friends list?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await deleteFriend(friend.idKey);
+            if (success) {
+              Alert.alert('Success', 'Friend removed');
+            } else {
+              Alert.alert('Error', 'Failed to remove friend');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleToggleEmergencyContact = async (friend: Friend) => {
+    const isEmergencyContact = emergencyContactUserId === friend.idKey;
+    if (isEmergencyContact) {
+      // Unset emergency contact
+      const success = await unsetEmergencyContact();
+      if (success) {
+        Alert.alert('Success', `${friend.nickname || friend.name} is no longer your emergency contact`);
+      } else {
+        Alert.alert('Error', 'Failed to unset emergency contact');
+      }
+    } else {
+      // Set as emergency contact
+      const success = await setEmergencyContactByFriendId(friend.idKey);
+      if (success) {
+        Alert.alert('Success', `${friend.nickname || friend.name} is now your emergency contact`);
+      } else {
+        Alert.alert('Error', 'Failed to set emergency contact');
+      }
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Friends</Text>
@@ -142,12 +185,28 @@ const FriendsScreen = () => {
                         <Text style={styles.friendItem}>
                           • {displayName} {friend.nickname && <Text style={styles.originalName}>({friend.name})</Text>} ({friend.idKey})
                         </Text>
-                        <TouchableOpacity 
-                          style={styles.editButton} 
-                          onPress={() => handleEditNickname(friend.idKey)}
-                        >
-                          <Text style={styles.editButtonText}>Edit Nickname</Text>
-                        </TouchableOpacity>
+                        <View style={styles.actionButtonsContainer}>
+                          <TouchableOpacity 
+                            style={styles.editButton} 
+                            onPress={() => handleEditNickname(friend.idKey)}
+                          >
+                            <Text style={styles.editButtonText}>Edit Nickname</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={emergencyContactUserId === friend.idKey ? styles.emergencyContactButtonActive : styles.emergencyContactButton}
+                            onPress={() => handleToggleEmergencyContact(friend)}
+                          >
+                            <Text style={styles.emergencyContactButtonText}>
+                              {emergencyContactUserId === friend.idKey ? 'Unset Emergency' : 'Set Emergency'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={styles.deleteButton} 
+                            onPress={() => handleDeleteFriend(friend)}
+                          >
+                            <Text style={styles.deleteButtonText}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     )}
                   </View>
@@ -169,7 +228,7 @@ const FriendsScreen = () => {
           )}
         </View>
         <Text style={styles.noteText}>
-          Note: Only emergency contact emails receive notifications when someone doesn't check in for 2 days.
+          Note: You will receive notifications when your emergency contact doesn't check in for 2 days.
         </Text>
       </View>
     </ScrollView>
@@ -179,40 +238,53 @@ const FriendsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#E8F4F8',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 30,
-    color: '#333',
+    color: '#8B6F9E',
   },
   section: {
     marginBottom: 30,
-    backgroundColor: 'white',
+    backgroundColor: '#FFF0F2',
     padding: 15,
-    borderRadius: 10,
-    elevation: 1,
+    borderRadius: 20,
+    elevation: 2,
+    shadowColor: '#D4B5E8',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: '#F5D0E8',
   },
   label: {
     fontSize: 16,
     marginBottom: 10,
-    color: '#666',
+    color: '#8B6F9E',
     fontWeight: '600',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#E8D5E3',
+    backgroundColor: '#FFF5F6',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 15,
     fontSize: 16,
+    color: '#5A4A6A',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#B19CD9',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#8B6F9E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   buttonText: {
     color: 'white',
@@ -228,14 +300,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#F5D0E8',
   },
   friendInfo: {
     flex: 1,
   },
   friendItem: {
     fontSize: 16,
-    color: '#444',
+    color: '#5A4A6A',
   },
   statusButton: {
     width: 32,
@@ -246,10 +318,10 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   statusButtonGreen: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#A8E6CF',
   },
   statusButtonGrey: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: '#E8D5E3',
   },
   statusButtonText: {
     color: 'white',
@@ -258,12 +330,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#999',
+    color: '#B19CD9',
     fontStyle: 'italic',
   },
   noteText: {
     fontSize: 12,
-    color: '#666',
+    color: '#9B8FB8',
     fontStyle: 'italic',
     marginTop: 15,
     textAlign: 'center',
@@ -276,17 +348,58 @@ const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
   },
-  editButton: {
+  emergencyLabel: {
+    fontSize: 12,
+    color: '#FF9500',
+    fontWeight: '600',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
     marginTop: 5,
+  },
+  editButton: {
     paddingVertical: 4,
     paddingHorizontal: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    alignSelf: 'flex-start',
+    backgroundColor: '#F5D0E8',
+    borderRadius: 8,
   },
   editButtonText: {
     fontSize: 12,
-    color: '#007AFF',
+    color: '#8B6F9E',
+    fontWeight: '600',
+  },
+  emergencyContactButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#B19CD9',
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  emergencyContactButtonActive: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#FF9A9E',
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  emergencyContactButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFB3BA',
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  deleteButtonText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: '600',
   },
   nicknameEditContainer: {
     flex: 1,
@@ -296,17 +409,19 @@ const styles = StyleSheet.create({
   nicknameInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#E8D5E3',
+    backgroundColor: '#FFF5F6',
     padding: 8,
-    borderRadius: 6,
+    borderRadius: 8,
     fontSize: 14,
     marginRight: 8,
+    color: '#5A4A6A',
   },
   saveButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#34C759',
-    borderRadius: 6,
+    backgroundColor: '#A8E6CF',
+    borderRadius: 8,
     marginRight: 8,
   },
   saveButtonText: {
@@ -317,11 +432,11 @@ const styles = StyleSheet.create({
   cancelButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#C7C7CC',
-    borderRadius: 6,
+    backgroundColor: '#E8D5E3',
+    borderRadius: 8,
   },
   cancelButtonText: {
-    color: 'white',
+    color: '#8B6F9E',
     fontSize: 12,
     fontWeight: '600',
   },
