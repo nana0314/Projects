@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { Platform } from 'react-native';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -16,5 +17,14 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore
 export const db = getFirestore(app);
+
+// Connect to emulator in development (for local testing)
+// Set USE_EMULATOR=true in your environment or use __DEV__ for React Native
+if (__DEV__ && Platform.OS !== 'web') {
+  // For React Native, use your computer's IP address instead of localhost
+  // Replace with your computer's IP: connectFirestoreEmulator(db, '192.168.x.x', 8080);
+  // For now, comment out if testing on device - emulator only works on local machine
+  // connectFirestoreEmulator(db, 'localhost', 8080);
+}
 
 export default app;

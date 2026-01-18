@@ -1,13 +1,13 @@
-# Attendance App
+# Still Alive
 
-This is a React Native app built with Expo that allows users to sign their attendance daily. If a user misses attendance for 2 consecutive days, it notifies their emergency contact.
+This is a React Native app built with Expo that allows users to check in daily to confirm they're safe. If a user misses check-in for 2 consecutive days, it notifies their emergency contact.
 
 ## Features
 
-- **Daily Check-in**: Simple button to mark attendance.
-- **Emergency Contact**: Set up an email to be notified in case of inactivity.
-- **Inactivity Alert**: Background task checks for inactivity (2 days) and triggers notifications.
-- **Friends List**: Add friends (currently local storage only).
+- **Daily Check-in**: Simple button to mark your daily check-in and confirm you're safe.
+- **Emergency Contact**: Set up an emergency contact to be notified if you miss check-ins.
+- **Inactivity Alert**: Background task checks for inactivity (2 days) and triggers notifications to your emergency contact.
+- **Friends List**: Add friends and track their check-in status.
 
 ## Setup and Installation
 
