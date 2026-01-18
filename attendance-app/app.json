@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "attendance-app",
-    "slug": "attendance-app",
+    "name": "Still Alive",
+    "slug": "still-alive",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,20 +16,31 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.attendanceapp"
+      "bundleIdentifier": "com.yourname.stillalive",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourname.attendanceapp"
+      "package": "com.yourname.stillalive"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff"
+        }
+      ],
       "expo-task-manager",
       "expo-background-fetch",
       "expo-mail-composer"
