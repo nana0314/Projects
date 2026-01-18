@@ -1,4 +1,4 @@
-# Still Alive
+# Stayin' Alive
 
 This is a React Native app built with Expo that allows users to check in daily to confirm they're safe. If a user misses check-in for 2 consecutive days, it notifies their emergency contact.
 

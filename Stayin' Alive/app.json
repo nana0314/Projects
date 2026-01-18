@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Still Alive",
-    "slug": "still-alive",
+    "name": "Stayin' Alive",
+    "slug": "stayin-alive",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.stillalive",
+      "bundleIdentifier": "com.yourname.stayinalive",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourname.stillalive"
+      "package": "com.yourname.stayinalive"
     },
     "web": {
       "favicon": "./assets/favicon.png"

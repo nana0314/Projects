@@ -298,7 +298,7 @@ exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
     await sendExpoPushNotification(
       expoPushToken,
       'Test Notification',
-      'This is a test notification from Still Alive!',
+      'This is a test notification from Stayin\' Alive!',
       {
         type: 'test',
       }

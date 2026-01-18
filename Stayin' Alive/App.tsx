@@ -115,7 +115,7 @@ export default function App() {
     <AttendanceProvider>
       <NavigationContainer>
         <Stack.Navigator>
-          <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Still Alive' }} />
+          <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Stayin\' Alive' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Friends" component={FriendsScreen} />
         </Stack.Navigator>
