@@ -1,0 +1,698 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/src/context/AuthContext';
+import {
+  getGroupById,
+  getGroupMembers,
+  uploadGroupPicture,
+  updateGroup,
+  leaveGroup,
+} from '@/src/utils/groups';
+import {
+  getGroupExpenses,
+  createExpense,
+  calculateGroupBalances,
+  deleteExpense,
+} from '@/src/utils/expenses';
+import { Group, User, Expense, ExpenseCategory } from '@/src/types';
+import { format } from 'date-fns';
+
+export default function GroupDetails() {
+  const { user, userData, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [groupId, setGroupId] = useState<string | null>(null);
+  
+  // Get groupId from URL query parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (id) {
+        setGroupId(id);
+      } else {
+        setError('Group ID is missing from URL');
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  const [group, setGroup] = useState<Group | null>(null);
+  const [members, setMembers] = useState<User[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  // Balance states
+  const [owedTo, setOwedTo] = useState<{ [userId: string]: number }>({});
+  const [owedFrom, setOwedFrom] = useState<{ [userId: string]: number }>({});
+  
+  // Expense modal state
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState<ExpenseCategory>('Food');
+  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [payerId, setPayerId] = useState('');
+  const [participants, setParticipants] = useState<string[]>([]);
+  const [splitType, setSplitType] = useState<'equal' | 'custom'>('equal');
+  const [customAmounts, setCustomAmounts] = useState<{ [key: string]: string }>({});
+  const [description, setDescription] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/');
+      return;
+    }
+    if (user && groupId) {
+      loadGroupData();
+    } else if (user && !groupId && !loading) {
+      // Only show error if we're not still loading the groupId from URL
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('id')) {
+        setError('Group ID is required');
+        setLoading(false);
+      }
+    }
+  }, [user, authLoading, groupId, router]);
+
+  useEffect(() => {
+    if (user && members.length > 0) {
+      setPayerId(user.uid);
+      loadBalances();
+    }
+  }, [user, members, expenses]);
+
+  const loadGroupData = async () => {
+    if (!user || !groupId) {
+      if (!groupId) {
+        setError('Group ID is required');
+        setLoading(false);
+      }
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+      console.log('Loading group data for ID:', groupId);
+      
+      const groupData = await getGroupById(groupId);
+      console.log('Group data:', groupData);
+
+      if (!groupData) {
+        setError(`Group not found. ID: ${groupId}`);
+        setLoading(false);
+        return;
+      }
+
+      if (!groupData.members || !groupData.members.some(m => m.userId === user.uid)) {
+        setError('You are not a member of this group');
+        setLoading(false);
+        router.push('/friends');
+        return;
+      }
+
+      const [groupMembers, groupExpenses] = await Promise.all([
+        getGroupMembers(groupId),
+        getGroupExpenses(groupId),
+      ]);
+
+      setGroup(groupData);
+      setMembers(groupMembers);
+      setExpenses(groupExpenses);
+    } catch (err: any) {
+      console.error('Error loading group data:', err);
+      setError(err.message || 'Failed to load group data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBalances = async () => {
+    if (!user || !groupId) return;
+    try {
+      const balances = await calculateGroupBalances(groupId, user.uid);
+      setOwedTo(balances.owedTo);
+      setOwedFrom(balances.owedFrom);
+    } catch (err: any) {
+      console.error('Failed to load balances:', err);
+    }
+  };
+
+  const handleParticipantToggle = (userId: string) => {
+    setParticipants((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+    if (participants.includes(userId)) {
+      setCustomAmounts((prev) => {
+        const newAmounts = { ...prev };
+        delete newAmounts[userId];
+        return newAmounts;
+      });
+    }
+  };
+
+  const handleCreateExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !amount || !payerId || participants.length === 0) return;
+
+    const expenseAmount = parseFloat(amount);
+    if (isNaN(expenseAmount) || expenseAmount <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+
+    setCreating(true);
+    setError('');
+
+    try {
+      let splitAmounts: { [userId: string]: number } | undefined;
+
+      if (splitType === 'custom') {
+        splitAmounts = {};
+        let total = 0;
+        for (const participantId of participants) {
+          const customAmount = parseFloat(customAmounts[participantId] || '0');
+          if (customAmount > 0) {
+            splitAmounts[participantId] = customAmount;
+            total += customAmount;
+          }
+        }
+        if (Math.abs(total - expenseAmount) > 0.01) {
+          setError('Custom split amounts must equal the total expense amount');
+          setCreating(false);
+          return;
+        }
+      }
+
+      await createExpense(
+        expenseAmount,
+        category,
+        new Date(date),
+        payerId,
+        participants,
+        splitType,
+        user.uid,
+        groupId!,
+        description.trim() || undefined,
+        splitAmounts
+      );
+
+      setSuccess('Expense created successfully!');
+      resetExpenseForm();
+      setShowExpenseModal(false);
+      await loadGroupData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create expense');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const resetExpenseForm = () => {
+    setAmount('');
+    setCategory('Food');
+    setDate(format(new Date(), 'yyyy-MM-dd'));
+    setPayerId(user?.uid || '');
+    setParticipants([]);
+    setSplitType('equal');
+    setCustomAmounts({});
+    setDescription('');
+  };
+
+  const getTotalSpending = (): number => {
+    return expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  };
+
+  const getUserName = (userId: string): string => {
+    if (userId === user?.uid) return 'You';
+    const member = members.find((m) => m.uid === userId);
+    return member?.displayName || 'Unknown';
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!user) return;
+    
+    if (!confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(expenseId);
+    setError('');
+    setSuccess('');
+
+    try {
+      await deleteExpense(expenseId, user.uid);
+      setSuccess('Expense deleted successfully!');
+      await loadGroupData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete expense');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!user || !groupId) return;
+    
+    const isCreator = group?.createdBy === user.uid;
+    const confirmMessage = isCreator
+      ? 'Are you sure you want to leave this group? As the creator, this will delete the group and all its expenses. This action cannot be undone.'
+      : 'Are you sure you want to leave this group?';
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    setLeaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await leaveGroup(groupId, user.uid);
+      setSuccess('Left group successfully!');
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push('/friends');
+      }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to leave group');
+      setLeaving(false);
+    }
+  };
+
+  if (authLoading || loading || !user || !userData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-xl text-red-600 mb-4">
+              {error || 'Group not found'}
+            </div>
+            {groupId && (
+              <p className="text-sm text-gray-500 mb-4">Group ID: {groupId}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-end">
+          <button
+            onClick={handleLeaveGroup}
+            disabled={leaving}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {leaving ? 'Leaving...' : group?.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Group Header */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-4">
+              {group.photoURL ? (
+                <img
+                  src={group.photoURL}
+                  alt={group.name}
+                  className="w-20 h-20 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-purple-600">
+                    {group.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">{group.name}</h1>
+                {group.description && (
+                  <p className="text-gray-600 mt-1">{group.description}</p>
+                )}
+                <p className="text-sm text-gray-500 mt-2">
+                  Group ID: {group.id}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowExpenseModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Add Expense
+            </button>
+          </div>
+
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold">Total Spending:</span> ${getTotalSpending().toFixed(2)}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              <span className="font-semibold">Members:</span> {members.length}
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+            {success}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Members and Balances */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Members */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Members</h2>
+              <div className="space-y-3">
+                {members.map((member) => (
+                  <div key={member.uid} className="flex items-center gap-3">
+                    {member.photoURL ? (
+                      <img
+                        src={member.photoURL}
+                        alt={member.displayName}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-sm text-gray-400">
+                          {member.displayName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-800">{member.displayName}</p>
+                      <p className="text-xs text-gray-500">ID: {member.uniqueId}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Your Balances in Group */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Balances</h2>
+              {Object.keys(owedTo).length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700 mb-2">You Owe:</p>
+                  {Object.entries(owedTo).map(([userId, amount]) => (
+                    <div key={userId} className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">{getUserName(userId)}</span>
+                      <span className="text-red-600 font-semibold">${amount.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {Object.keys(owedFrom).length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">You&apos;re Owed:</p>
+                  {Object.entries(owedFrom).map(([userId, amount]) => (
+                    <div key={userId} className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">{getUserName(userId)}</span>
+                      <span className="text-green-600 font-semibold">${amount.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {Object.keys(owedTo).length === 0 && Object.keys(owedFrom).length === 0 && (
+                <p className="text-sm text-gray-500">No balances in this group</p>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Expenses */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-800">Expense History</h2>
+              </div>
+              {expenses.length === 0 ? (
+                <div className="p-12 text-center text-gray-500">
+                  <p>No expenses yet.</p>
+                  <button
+                    onClick={() => setShowExpenseModal(true)}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Add Your First Expense
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {expenses.map((expense) => (
+                    <div key={expense.id} className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                              {expense.category}
+                            </span>
+                            <span className="text-xl font-bold text-gray-800">
+                              ${expense.amount.toFixed(2)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Paid by {getUserName(expense.payerId)}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Split with: {expense.participants.map(getUserName).join(', ')}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {format(expense.date.toDate(), 'MMM dd, yyyy')}
+                          </p>
+                          {expense.description && (
+                            <p className="text-sm text-gray-700 mt-2">{expense.description}</p>
+                          )}
+                        </div>
+                        {(expense.createdBy === user?.uid || expense.payerId === user?.uid) && (
+                          <button
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            disabled={deleting === expense.id}
+                            className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            title="Delete expense"
+                          >
+                            {deleting === expense.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Add Expense Modal - Same as expenses page */}
+        {showExpenseModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Add Expense to Group</h2>
+              <form onSubmit={handleCreateExpense} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Amount *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category *
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="Food">Food</option>
+                    <option value="Rental">Rental</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Entertainment">Entertainment</option>
+                    <option value="Beverage">Beverage</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Who Paid? *
+                  </label>
+                  <select
+                    value={payerId}
+                    onChange={(e) => setPayerId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    {members.map((member) => (
+                      <option key={member.uid} value={member.uid}>
+                        {member.uid === user.uid ? 'You' : member.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Participants * (select who should split)
+                  </label>
+                  <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto">
+                    {members.map((member) => (
+                      <label
+                        key={member.uid}
+                        className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={participants.includes(member.uid)}
+                          onChange={() => handleParticipantToggle(member.uid)}
+                        />
+                        <span>{member.uid === user.uid ? 'You' : member.displayName}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Split Type *
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        checked={splitType === 'equal'}
+                        onChange={() => setSplitType('equal')}
+                      />
+                      <span>Equal Split</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        checked={splitType === 'custom'}
+                        onChange={() => setSplitType('custom')}
+                      />
+                      <span>Custom Amounts</span>
+                    </label>
+                  </div>
+                </div>
+
+                {splitType === 'custom' && participants.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Custom Amounts (must total ${amount || '0.00'})
+                    </label>
+                    <div className="border border-gray-300 rounded-lg p-3 space-y-2">
+                      {participants.map((participantId) => {
+                        const participant = members.find((m) => m.uid === participantId);
+                        return (
+                          <div key={participantId} className="flex items-center gap-2">
+                            <label className="flex-1 text-sm">
+                              {participantId === user.uid ? 'You' : participant?.displayName}:
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={customAmounts[participantId] || ''}
+                              onChange={(e) =>
+                                setCustomAmounts({
+                                  ...customAmounts,
+                                  [participantId]: e.target.value,
+                                })
+                              }
+                              className="w-32 px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description (optional)
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowExpenseModal(false);
+                      resetExpenseForm();
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creating || participants.length === 0 || !amount}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    {creating ? 'Creating...' : 'Create Expense'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator for Smart Split</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .icon-preview {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Smart Split Icon Generator</h1>
+    <p>Upload your image to generate PWA icons in all required sizes. The image will be automatically resized and cropped to fit.</p>
+    
+    <div style="margin: 20px 0;">
+        <input type="file" id="imageInput" accept="image/*" style="margin-bottom: 10px;">
+        <br>
+        <button onclick="generateIcons()" id="generateBtn" disabled>Generate Icons</button>
+        <button onclick="generateDefaultIcons()">Generate Default Icons (SS)</button>
+    </div>
+    
+    <div id="preview"></div>
+    
+    <script>
+        let uploadedImage = null;
+        
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        uploadedImage = img;
+                        document.getElementById('generateBtn').disabled = false;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        function generateIcons() {
+            if (!uploadedImage) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            
+            sizes.forEach(size => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw the uploaded image, scaled and centered
+                const scale = Math.max(size / uploadedImage.width, size / uploadedImage.height);
+                const scaledWidth = uploadedImage.width * scale;
+                const scaledHeight = uploadedImage.height * scale;
+                const x = (size - scaledWidth) / 2;
+                const y = (size - scaledHeight) / 2;
+                
+                ctx.drawImage(uploadedImage, x, y, scaledWidth, scaledHeight);
+                
+                // Create download link
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `icon-${size}x${size}.png`;
+                    a.textContent = `Download ${size}x${size}`;
+                    a.style.display = 'block';
+                    a.style.margin = '5px';
+                    
+                    const div = document.createElement('div');
+                    div.className = 'icon-preview';
+                    div.appendChild(canvas);
+                    div.appendChild(a);
+                    preview.appendChild(div);
+                });
+            });
+        }
+        
+        function generateDefaultIcons() {
+            const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            
+            sizes.forEach(size => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw background
+                ctx.fillStyle = '#2563eb';
+                ctx.fillRect(0, 0, size, size);
+                
+                // Draw text "SS" in white
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${size * 0.4}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('SS', size / 2, size / 2);
+                
+                // Create download link
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `icon-${size}x${size}.png`;
+                    a.textContent = `Download ${size}x${size}`;
+                    a.style.display = 'block';
+                    a.style.margin = '5px';
+                    
+                    const div = document.createElement('div');
+                    div.className = 'icon-preview';
+                    div.appendChild(canvas);
+                    div.appendChild(a);
+                    preview.appendChild(div);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
