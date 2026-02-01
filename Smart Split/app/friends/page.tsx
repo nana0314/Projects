@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
-import { addFriendByUniqueId, getUserFriends } from '@/src/utils/friends';
+import { addFriendByUniqueId, getUserFriends, getPendingFriendRequests, acceptFriendRequest, declineFriendRequest } from '@/src/utils/friends';
 import { calculateUserBalances, getUserExpenses } from '@/src/utils/expenses';
 import { getSettleUpData, shouldHideSettledUp } from '@/src/utils/settleUpStorage';
 import { User } from '@/src/types';
@@ -13,6 +13,7 @@ export default function Friends() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [friends, setFriends] = useState<User[]>([]);
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [friendId, setFriendId] = useState('');
   const [loadingFriends, setLoadingFriends] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -38,12 +39,14 @@ export default function Friends() {
     if (!user) return;
     try {
       setLoadingFriends(true);
-      const [userFriends, balances, expenses] = await Promise.all([
+      const [userFriends, balances, expenses, requests] = await Promise.all([
         getUserFriends(user.uid),
         calculateUserBalances(user.uid),
         getUserExpenses(user.uid),
+        getPendingFriendRequests(user.uid),
       ]);
       setFriends(userFriends);
+      setFriendRequests(requests);
       setOwedTo(balances.owedTo);
       setOwedFrom(balances.owedFrom);
       setSettleUpData(getSettleUpData(user.uid));
@@ -73,6 +76,26 @@ export default function Friends() {
       setError(err.message || 'Failed to add friend');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string, senderId: string) => {
+    if (!user) return;
+    try {
+      await acceptFriendRequest(user.uid, senderId);
+      await loadFriends();
+    } catch (err: any) {
+      setError(err.message || 'Failed to accept friend request');
+    }
+  };
+
+  const handleDeclineRequest = async (requestId: string, senderId: string) => {
+    if (!user) return;
+    try {
+      await declineFriendRequest(user.uid, senderId);
+      await loadFriends();
+    } catch (err: any) {
+      setError(err.message || 'Failed to decline friend request');
     }
   };
 
@@ -110,12 +133,12 @@ export default function Friends() {
           <div className="flex items-center justify-between relative">
             {/* Spacer for layout balance */}
             <div className="w-10" aria-hidden="true" />
-            
+
             {/* Center: Smart Split Title */}
             <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
               <h1 className="text-xl font-semibold text-gray-800">Smart Split</h1>
             </div>
-            
+
             {/* Right: Add Friend Button */}
             <div className="flex items-center gap-3">
               <button
@@ -133,6 +156,60 @@ export default function Friends() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Friend Requests Section */}
+        {friendRequests.length > 0 && (
+          <div className="bg-white rounded-lg shadow mb-6">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Friend Requests
+              </h2>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {friendRequests.map((request) => (
+                <div key={request.id} className="p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {request.senderInfo?.photoURL ? (
+                      <img
+                        src={request.senderInfo.photoURL}
+                        alt={request.senderInfo.displayName}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-lg text-gray-400">
+                          {request.senderInfo?.displayName?.charAt(0).toUpperCase() || '?'}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        {request.senderInfo?.displayName || 'Unknown User'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        ID: {request.senderInfo?.uniqueId || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAcceptRequest(request.id, request.senderId)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:scale-95 transition-all"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleDeclineRequest(request.id, request.senderId)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 active:scale-95 transition-all"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Friends List — only expense-involved */}
         <div className="bg-white rounded-lg shadow">
@@ -268,7 +345,7 @@ export default function Friends() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Add Friend by ID</h2>
-            
+
             {error && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
                 {error}

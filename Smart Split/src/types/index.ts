@@ -17,6 +17,16 @@ export interface Friend {
   addedAt: Timestamp;
 }
 
+export interface FriendRequest {
+  id: string;
+  userId: string; // The user who sent the request
+  friendId: string; // The user who received the request
+  status: 'pending' | 'accepted';
+  addedAt: Timestamp;
+  senderInfo?: User; // Populated user info for UI display
+}
+
+
 export interface GroupMember {
   userId: string;
   uniqueId: string;

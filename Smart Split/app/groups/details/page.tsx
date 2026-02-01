@@ -23,7 +23,7 @@ export default function GroupDetails() {
   const { user, userData, loading: authLoading } = useAuth();
   const router = useRouter();
   const [groupId, setGroupId] = useState<string | null>(null);
-  
+
   // Get groupId from URL query parameter
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -44,11 +44,11 @@ export default function GroupDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   // Balance states
   const [owedTo, setOwedTo] = useState<{ [userId: string]: number }>({});
   const [owedFrom, setOwedFrom] = useState<{ [userId: string]: number }>({});
-  
+
   // Expense modal state
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [amount, setAmount] = useState('');
@@ -98,10 +98,8 @@ export default function GroupDetails() {
     try {
       setLoading(true);
       setError('');
-      console.log('Loading group data for ID:', groupId);
-      
+
       const groupData = await getGroupById(groupId);
-      console.log('Group data:', groupData);
 
       if (!groupData) {
         setError(`Group not found. ID: ${groupId}`);
@@ -238,7 +236,7 @@ export default function GroupDetails() {
 
   const handleDeleteExpense = async (expenseId: string) => {
     if (!user) return;
-    
+
     if (!confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
       return;
     }
@@ -260,12 +258,12 @@ export default function GroupDetails() {
 
   const handleLeaveGroup = async () => {
     if (!user || !groupId) return;
-    
+
     const isCreator = group?.createdBy === user.uid;
     const confirmMessage = isCreator
       ? 'Are you sure you want to leave this group? As the creator, this will delete the group and all its expenses. This action cannot be undone.'
       : 'Are you sure you want to leave this group?';
-    
+
     if (!confirm(confirmMessage)) {
       return;
     }

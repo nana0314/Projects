@@ -6,6 +6,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
   or,
   and,
@@ -57,13 +58,33 @@ export const addFriendByUniqueId = async (
     throw new Error('Friend relationship already exists');
   }
 
-  // Create friend request (pending)
-  const friendRef = doc(collection(db, 'friends'));
-  await setDoc(friendRef, {
-    userId: currentUserId,
-    friendId: friendId,
-    status: 'pending',
-    addedAt: serverTimestamp(),
+  // Check if friend request already exists
+  const friendRequestsRef = collection(db, 'friendRequests');
+  const existingRequestQuery = query(
+    friendRequestsRef,
+    or(
+      and(
+        where('senderId', '==', currentUserId),
+        where('receiverId', '==', friendId)
+      ),
+      and(
+        where('senderId', '==', friendId),
+        where('receiverId', '==', currentUserId)
+      )
+    )
+  );
+
+  const existingRequests = await getDocs(existingRequestQuery);
+  if (!existingRequests.empty) {
+    throw new Error('Friend request already sent or pending');
+  }
+
+  // Create friend request in friendRequests collection
+  const friendRequestRef = doc(collection(db, 'friendRequests'));
+  await setDoc(friendRequestRef, {
+    senderId: currentUserId,
+    receiverId: friendId,
+    createdAt: serverTimestamp(),
   });
 };
 
@@ -72,25 +93,33 @@ export const addFriendByUniqueId = async (
  */
 export const acceptFriendRequest = async (
   currentUserId: string,
-  friendId: string
+  senderId: string
 ): Promise<void> => {
-  const friendsRef = collection(db, 'friends');
-  const friendQuery = query(
-    friendsRef,
-    where('userId', '==', friendId),
-    where('friendId', '==', currentUserId),
-    where('status', '==', 'pending')
+  const friendRequestsRef = collection(db, 'friendRequests');
+  const requestQuery = query(
+    friendRequestsRef,
+    where('senderId', '==', senderId),
+    where('receiverId', '==', currentUserId)
   );
 
-  const friendSnapshot = await getDocs(friendQuery);
-  if (friendSnapshot.empty) {
+  const requestSnapshot = await getDocs(requestQuery);
+  if (requestSnapshot.empty) {
     throw new Error('Friend request not found');
   }
 
-  const friendDoc = friendSnapshot.docs[0];
-  await updateDoc(doc(db, 'friends', friendDoc.id), {
-    status: 'accepted',
+  const requestDoc = requestSnapshot.docs[0];
+
+  // Create friendship in friends collection (bidirectional - only one record needed)
+  const friendsRef = collection(db, 'friends');
+  const friendshipRef = doc(friendsRef);
+  await setDoc(friendshipRef, {
+    userId: currentUserId,
+    friendId: senderId,
+    createdAt: serverTimestamp(),
   });
+
+  // Delete the friend request
+  await deleteDoc(doc(db, 'friendRequests', requestDoc.id));
 };
 
 /**
@@ -98,19 +127,17 @@ export const acceptFriendRequest = async (
  */
 export const getUserFriends = async (userId: string): Promise<User[]> => {
   const friendsRef = collection(db, 'friends');
-  
-  // Get friends where user is userId and status is accepted
+
+  // Get friends where user is userId (no status check needed - all in friends collection are accepted)
   const query1 = query(
     friendsRef,
-    where('userId', '==', userId),
-    where('status', '==', 'accepted')
+    where('userId', '==', userId)
   );
 
-  // Get friends where user is friendId and status is accepted
+  // Get friends where user is friendId
   const query2 = query(
     friendsRef,
-    where('friendId', '==', userId),
-    where('status', '==', 'accepted')
+    where('friendId', '==', userId)
   );
 
   const [snapshot1, snapshot2] = await Promise.all([
@@ -133,7 +160,7 @@ export const getUserFriends = async (userId: string): Promise<User[]> => {
   // Get user details for each friend
   const { getUserById } = await import('./users');
   const friends: User[] = [];
-  
+
   for (const friendId of friendIds) {
     const friend = await getUserById(friendId);
     if (friend) {
@@ -142,4 +169,60 @@ export const getUserFriends = async (userId: string): Promise<User[]> => {
   }
 
   return friends;
+};
+
+/**
+ * Get pending friend requests for a user (requests sent TO this user)
+ */
+export const getPendingFriendRequests = async (userId: string): Promise<any[]> => {
+  const friendRequestsRef = collection(db, 'friendRequests');
+
+  // Get friend requests where current user is the receiver
+  const pendingQuery = query(
+    friendRequestsRef,
+    where('receiverId', '==', userId)
+  );
+
+  const snapshot = await getDocs(pendingQuery);
+
+  const requests: any[] = [];
+  const { getUserById } = await import('./users');
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const senderInfo = await getUserById(data.senderId);
+
+    requests.push({
+      id: doc.id,
+      senderId: data.senderId,
+      receiverId: data.receiverId,
+      createdAt: data.createdAt,
+      senderInfo,
+    });
+  }
+
+  return requests;
+};
+
+/**
+ * Decline friend request
+ */
+export const declineFriendRequest = async (
+  currentUserId: string,
+  senderId: string
+): Promise<void> => {
+  const friendRequestsRef = collection(db, 'friendRequests');
+  const requestQuery = query(
+    friendRequestsRef,
+    where('senderId', '==', senderId),
+    where('receiverId', '==', currentUserId)
+  );
+
+  const requestSnapshot = await getDocs(requestQuery);
+  if (requestSnapshot.empty) {
+    throw new Error('Friend request not found');
+  }
+
+  const requestDoc = requestSnapshot.docs[0];
+  await deleteDoc(doc(db, 'friendRequests', requestDoc.id));
 };

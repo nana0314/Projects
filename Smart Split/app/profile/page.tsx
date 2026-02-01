@@ -47,7 +47,7 @@ export default function Profile() {
     if (!user || !e.target.files?.[0]) return;
 
     const file = e.target.files[0];
-    
+
     // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       setError('File size must be less than 5MB');
@@ -65,15 +65,12 @@ export default function Profile() {
     setSuccess('');
 
     try {
-      console.log('Uploading profile picture...', file.name, file.size, file.type);
       const photoURL = await uploadProfilePicture(user.uid, file);
-      console.log('Upload successful, photoURL:', photoURL);
-      
+
       await updateUserProfile(user.uid, { photoURL });
-      console.log('Profile updated in Firestore');
-      
+
       setSuccess('Profile picture updated successfully!');
-      
+
       // Reload the page after a short delay to ensure Firebase Auth and Firestore are in sync
       setTimeout(() => {
         window.location.reload();
