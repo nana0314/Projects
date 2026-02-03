@@ -7,6 +7,7 @@ import { getUserFriends } from '@/src/utils/friends';
 import { getUserGroups } from '@/src/utils/groups';
 import { createExpense, getUserExpenses, getGroupExpenses, deleteExpense, calculateUserBalances } from '@/src/utils/expenses';
 import { performSettleUp } from '@/src/utils/settleUpStorage';
+import { simplifyDebts, calculateNetBalances, SimplifiedDebt } from '@/src/utils/debtSimplification';
 import { Expense, ExpenseCategory, User, Group } from '@/src/types';
 import { format } from 'date-fns';
 
@@ -37,6 +38,8 @@ export default function Expenses() {
   const [owedFrom, setOwedFrom] = useState<{ [userId: string]: number }>({});
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [settlingUp, setSettlingUp] = useState(false);
+  const [simplifyEnabled, setSimplifyEnabled] = useState(false);
+  const [simplifiedDebts, setSimplifiedDebts] = useState<SimplifiedDebt[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -87,6 +90,18 @@ export default function Expenses() {
       setLoadingBalances(false);
     }
   };
+
+  // Calculate simplified debts when balances change or simplify is toggled
+  useEffect(() => {
+    if (!user || !simplifyEnabled) {
+      setSimplifiedDebts([]);
+      return;
+    }
+
+    const netBalances = calculateNetBalances(owedTo, owedFrom);
+    const simplified = simplifyDebts(netBalances);
+    setSimplifiedDebts(simplified);
+  }, [owedTo, owedFrom, simplifyEnabled, user]);
 
   const handleSettleUp = async () => {
     if (!user) return;
@@ -307,16 +322,87 @@ export default function Expenses() {
               )}
             </p>
             {!loadingBalances && (
-              <button
-                onClick={handleSettleUp}
-                disabled={settlingUp || (totalOwedTo === 0 && totalOwedFrom === 0)}
-                className="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
-              >
-                {settlingUp ? 'Settling Up...' : 'Settle Up'}
-              </button>
+              <>
+                <button
+                  onClick={() => setSimplifyEnabled(!simplifyEnabled)}
+                  className={`mt-4 w-full px-4 py-2 rounded-lg text-sm font-medium transition-all ${simplifyEnabled
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50'
+                    }`}
+                >
+                  {simplifyEnabled ? '✓ Simplify ON' : 'Simplify Debts'}
+                </button>
+                <button
+                  onClick={handleSettleUp}
+                  disabled={settlingUp || (totalOwedTo === 0 && totalOwedFrom === 0)}
+                  className="mt-3 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
+                >
+                  {settlingUp ? 'Settling Up...' : 'Settle Up'}
+                </button>
+              </>
             )}
           </div>
         </div>
+
+        {/* Simplified Debts Section */}
+        {simplifyEnabled && simplifiedDebts.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Simplified Payments
+              </h2>
+              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                {simplifiedDebts.length} payment{simplifiedDebts.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              These simplified payments will settle all your debts with the minimum number of transactions.
+            </p>
+            <div className="space-y-3">
+              {simplifiedDebts.map((debt, index) => {
+                const fromUser = debt.from === user?.uid
+                  ? 'You'
+                  : friends.find(f => f.uid === debt.from)?.displayName || 'Unknown';
+                const toUser = debt.to === user?.uid
+                  ? 'You'
+                  : friends.find(f => f.uid === debt.to)?.displayName || 'Unknown';
+
+                // Only show debts involving the current user
+                if (debt.from !== user?.uid && debt.to !== user?.uid) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-lg font-semibold ${debt.from === user?.uid ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                        {debt.from === user?.uid ? '→' : '←'}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">
+                          {debt.from === user?.uid
+                            ? `Pay ${toUser}`
+                            : `${fromUser} pays you`}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {debt.from} → {debt.to}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-lg font-bold ${debt.from === user?.uid ? 'text-red-600' : 'text-green-600'
+                      }`}>
+                      ${debt.amount.toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {loadingExpenses ? (
           <div className="text-center py-12 text-gray-500">Loading expenses...</div>
