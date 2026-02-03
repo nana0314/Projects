@@ -1,152 +1,116 @@
-# Smart Split
+# Smart Split 🐻
 
-A web application for splitting expenses with friends and groups. Built with Next.js, TypeScript, Firebase, and Firestore.
+A modern, mobile-first web application for splitting expenses with friends and groups effortlessly. Built with Next.js 15, TypeScript, and Firebase.
 
-## Features
+![Smart Split App](/public/icons/icon-512x512.png)
 
-- **Google Authentication**: Sign up and log in with Google email, with persistent login (no auto logout)
-- **Unique User ID**: Each user receives a random unique ID upon signup
-- **Friend Management**: Add friends by ID, manage friend requests
-- **User Profile**: Manage profile including picture and name
-- **Groups**: Create groups, join/leave groups, manage group details
-- **Expense Tracking**: Add expenses in groups or directly with friends
-- **Flexible Splitting**: 
-  - Equal split among participants
-  - Custom amounts per participant
-- **Balance Management**: Track who owes whom
+## 🚀 Live Demo
 
-## Tech Stack
+**Access the live app here:** [https://smart-split-bay.vercel.app](https://smart-split-bay.vercel.app)
 
-- **Next.js 15** - React framework
-- **TypeScript** - Type safety
-- **Firebase Authentication** - Google sign-in
-- **Cloud Firestore** - Database
-- **Firebase Storage** - File storage for profile/group pictures
-- **Tailwind CSS** - Styling
+*Note: This is a PWA (Progressive Web App). You can install it on your phone for a native app-like experience!*
 
-## Getting Started
+---
 
-### Prerequisites
+## ✨ Core Functions
 
-- Node.js 18+ installed
-- Firebase project created
-- Google Authentication enabled in Firebase Console
+### 👥 Friend System
+- **Unique ID System:** Every user gets a random 8-character ID (e.g., `NANA0314`) to share easily.
+- **Friend Requests:** Send and receive requests instantly.
+- **Real-time Updates:** See new friends appear immediately without refreshing.
 
-### Installation
+### 💰 Expense Splitting
+- **Group Expenses:** Create groups (e.g., "Trip to Japan") and track shared costs.
+- **Direct Expenses:** Split bills one-on-one with specific friends.
+- **Flexible Options:**
+  - **Equal Split:** Automatically divide cost by number of people.
+  - **Custom Split:** detailed manual adjustments for complex bills.
+- **Smart Balances:** The app automatically calculates who owes whom.
 
-1. Install dependencies:
+### 🏠 Group Management
+- **Dashboard:** See all your groups in one place with total balance summaries.
+- **Activity Log:** Track recent actions (who added what).
+- **Settling Up:** Mark debts as paid to reset balances.
+
+### 📱 PWA Features (Mobile Optimized)
+- **Installable:** Add to Home Screen on iOS and Android.
+- **App-like UI:** Bottom navigation, smooth transitions, and safe-area handling.
+- **Offline Support:** Basic UI loads even without internet.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** Next.js 15 (App Router), React 19, TypeScript
+- **Styling:** Tailwind CSS, PostCSS
+- **Backend:** Firebase (Authentication, Firestore, Storage)
+- **Deployment:** Vercel (Production), Vercel Analytics
+
+---
+
+## 🚀 Getting Started Locally
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/smart-split.git
+   cd smart-split
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment**
+   Create a `.env.local` file with your Firebase credentials:
+   ```env
+   NEXT_PUBLIC_FIREBASE_API_KEY=...
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+   NEXT_PUBLIC_FIREBASE_APP_ID=...
+   ```
+
+4. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open Browser**
+   Visit [http://localhost:3000](http://localhost:3000)
+
+---
+
+## 📂 Project Structure
+
 ```bash
-npm install
-```
-
-2. Create a `.env.local` file in the root directory:
-```
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-```
-
-3. Deploy Firestore rules:
-```bash
-firebase deploy --only firestore:rules
-```
-
-4. Deploy Firestore indexes:
-```bash
-firebase deploy --only firestore:indexes
-```
-
-### Running the Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
 Smart Split/
-├── app/                    # Next.js app directory
-│   ├── dashboard/         # Dashboard page
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home/login page
+├── app/                    # Next.js App Router pages
+│   ├── friends/           # Friends management
+│   ├── groups/            # Group details & lists
+│   ├── profile/           # User profile settings
+│   ├── activity/          # Recent activity feed
+│   └── layout.tsx         # Main app layout (PWA wrapper)
 ├── src/
-│   ├── config/           # Firebase configuration
-│   ├── context/          # React contexts
-│   ├── types/            # TypeScript types
-│   └── utils/            # Utility functions
-│       ├── auth.ts       # Authentication helpers
-│       ├── users.ts      # User management
-│       ├── friends.ts    # Friend management
-│       ├── groups.ts     # Group management
-│       └── expenses.ts   # Expense management
-├── firestore.rules       # Firestore security rules
-├── firestore.indexes.json # Firestore indexes
-└── firebase.json         # Firebase configuration
+│   ├── components/        # Reusable UI components (BottomNav, etc.)
+│   ├── context/           # AuthContext & global state
+│   ├── utils/             # Firebase logic (friends.ts, groups.ts)
+│   └── types/             # TypeScript interfaces
+├── public/                 # Static assets (icons, manifest)
+└── firestore.rules        # Security rules for database
 ```
 
-## Firebase Setup
+---
 
-1. Create a new Firebase project
-2. Enable Google Authentication in Authentication > Sign-in method
-3. Create a Firestore database
-4. Set up Firebase Storage
-5. Copy your Firebase configuration to `.env.local`
+## 🔒 Security
 
-## Database Schema
+- **Authentication:** Protected Routes ensure only logged-in users access app features.
+- **Database Rules:** Firestore security rules prevent unauthorized access to other users' data.
+- **Environment Variables:** API keys are secured via Vercel environment configuration.
 
-### Users Collection
-- `uid` (document ID)
-- `email`: string
-- `displayName`: string
-- `photoURL`: string (optional)
-- `uniqueId`: string (8-character unique ID)
-- `createdAt`: timestamp
-- `updatedAt`: timestamp
+---
 
-### Friends Collection
-- `userId`: string (user who sent request)
-- `friendId`: string (user who received request)
-- `status`: 'pending' | 'accepted'
-- `addedAt`: timestamp
+## 📄 License
 
-### Groups Collection
-- `name`: string
-- `description`: string (optional)
-- `photoURL`: string (optional)
-- `createdBy`: string (user ID)
-- `members`: array of user IDs
-- `createdAt`: timestamp
-- `updatedAt`: timestamp
-
-### Expenses Collection
-- `amount`: number
-- `category`: 'Food' | 'Rental' | 'Groceries' | 'Entertainment' | 'Beverage'
-- `date`: timestamp
-- `payerId`: string (user who paid)
-- `participants`: array of user IDs
-- `splitType`: 'equal' | 'custom'
-- `splitAmounts`: object mapping user ID to amount (for custom splits)
-- `groupId`: string (optional, if expense is in a group)
-- `description`: string (optional)
-- `createdAt`: timestamp
-- `createdBy`: string (user ID)
-
-## Next Steps
-
-This is a starter template. You'll need to create additional pages for:
-- Profile management (`/profile`)
-- Friends management (`/friends`)
-- Groups management (`/groups`)
-- Expense creation/editing (`/expenses`)
-- Balance viewing (`/balances`)
-
-## License
-
-Private project
+Private Project. Created for personal use.

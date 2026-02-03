@@ -2,10 +2,18 @@
   {
     "origin": [
       "https://smart-split-9acc2.web.app",
+      "https://smart-split-bay.vercel.app",
       "http://localhost:3000",
       "http://localhost:3001"
     ],
-    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+    "method": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "HEAD",
+      "OPTIONS"
+    ],
     "responseHeader": [
       "Content-Type",
       "Authorization",

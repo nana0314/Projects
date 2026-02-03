@@ -7,7 +7,7 @@ import { updateUserProfile, uploadProfilePicture } from '@/src/utils/users';
 import { signOut } from '@/src/utils/auth';
 
 export default function Profile() {
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, refreshUser } = useAuth();
   const router = useRouter();
   const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -24,8 +24,7 @@ export default function Profile() {
     }
   }, [user, userData, loading, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleNameUpdate = async () => {
     if (!user || !userData) return;
 
     setSaving(true);
@@ -34,8 +33,8 @@ export default function Profile() {
 
     try {
       await updateUserProfile(user.uid, { displayName });
-      setSuccess('Profile updated successfully!');
-      setTimeout(() => router.push('/friends'), 1500);
+      await refreshUser(); // Update context immediately
+      setSuccess('Display name updated successfully!');
     } catch (err: any) {
       setError(err.message || 'Failed to update profile');
     } finally {
@@ -65,16 +64,16 @@ export default function Profile() {
     setSuccess('');
 
     try {
+      // 1. Upload new picture
       const photoURL = await uploadProfilePicture(user.uid, file);
 
+      // 2. Update user profile in Firestore
       await updateUserProfile(user.uid, { photoURL });
 
-      setSuccess('Profile picture updated successfully!');
+      // 3. IMPORTANT: Refresh Auth Context to update BottomNav immediatley
+      await refreshUser();
 
-      // Reload the page after a short delay to ensure Firebase Auth and Firestore are in sync
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setSuccess('Profile picture updated successfully!');
     } catch (err: any) {
       console.error('Profile picture upload error:', err);
       setError(err.message || 'Failed to upload picture. Please check your browser console for details.');
@@ -90,6 +89,8 @@ export default function Profile() {
       </div>
     );
   }
+
+  const isNameChanged = displayName !== userData.displayName;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-0">
@@ -163,21 +164,37 @@ export default function Profile() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
 
-            {/* Display Name */}
+            {/* Display Name with Inline Apply Button */}
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
                 Display Name
               </label>
-              <input
-                type="text"
-                id="displayName"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  id="displayName"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your display name"
+                />
+                <button
+                  type="button"
+                  onClick={handleNameUpdate}
+                  disabled={!isNameChanged || saving || !displayName.trim()}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${isNameChanged && displayName.trim()
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                >
+                  {saving ? 'Saving...' : 'Apply'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Click Apply to save your new display name.
+              </p>
             </div>
 
             {/* Email (read-only) */}
@@ -215,17 +232,7 @@ export default function Profile() {
               <p className="text-xs text-gray-500 mt-1">Share this ID with friends to add you</p>
             </div>
 
-            {/* Submit Button */}
-            <div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed active:scale-95 transition-transform"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
+          </div>
 
           {/* Sign Out Button */}
           <div className="mt-8 pt-8 border-t border-gray-200">

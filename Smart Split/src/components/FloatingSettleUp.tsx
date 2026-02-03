@@ -102,9 +102,10 @@ export default function FloatingSettleUp() {
   };
 
   // Hide on login page and Account page (profile). When user presses Account, both buttons disappear.
+  // Also hide on add-expense page and when the settle-up modal is open
   const isAccountPage = pathname === '/account' || (pathname?.startsWith?.('/profile'));
   const isAddExpensePage = pathname === '/add-expense';
-  if (!pathname || pathname === '/' || isAccountPage || isAddExpensePage || !user) {
+  if (!pathname || pathname === '/' || isAccountPage || isAddExpensePage || !user || showModal) {
     return null;
   }
 

@@ -17,6 +17,46 @@ import { db, storage } from '@/src/config/firebase';
 import { Group, User, GroupMember } from '@/src/types';
 
 /**
+ * Generate a random 4-character alphanumeric group ID
+ */
+const generateGroupId = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let id = '';
+  for (let i = 0; i < 4; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return id;
+};
+
+/**
+ * Check if a group ID is available (not already used)
+ */
+const isGroupIdAvailable = async (groupId: string): Promise<boolean> => {
+  const groupRef = doc(db, 'groups', groupId);
+  const groupDoc = await getDoc(groupRef);
+  return !groupDoc.exists();
+};
+
+/**
+ * Generate a unique 4-character group ID
+ * Tries up to 10 times to find an available ID
+ */
+const generateUniqueGroupId = async (): Promise<string> => {
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  while (attempts < maxAttempts) {
+    const groupId = generateGroupId();
+    if (await isGroupIdAvailable(groupId)) {
+      return groupId;
+    }
+    attempts++;
+  }
+
+  throw new Error('Failed to generate unique group ID. Please try again.');
+};
+
+/**
  * Create a new group
  */
 export const createGroup = async (
@@ -25,13 +65,14 @@ export const createGroup = async (
   description?: string,
   photoURL?: string
 ): Promise<string> => {
-  const groupsRef = collection(db, 'groups');
-  const groupRef = doc(groupsRef);
+  // Generate unique 4-character group ID
+  const groupId = await generateUniqueGroupId();
+  const groupRef = doc(db, 'groups', groupId);
 
   // Get user details to store in members
   const { getUserById } = await import('./users');
   const creator = await getUserById(createdBy);
-  
+
   if (!creator) {
     throw new Error('User not found');
   }
@@ -60,7 +101,7 @@ export const createGroup = async (
   }
 
   await setDoc(groupRef, groupData);
-  return groupRef.id;
+  return groupId;
 };
 
 /**
@@ -84,19 +125,19 @@ export const updateGroup = async (
   updates: Partial<Pick<Group, 'name' | 'description' | 'photoURL'>>
 ): Promise<void> => {
   const groupRef = doc(db, 'groups', groupId);
-  
+
   // Filter out undefined values
   const cleanUpdates: any = {
     updatedAt: serverTimestamp(),
   };
-  
+
   Object.keys(updates).forEach((key) => {
     const value = updates[key as keyof typeof updates];
     if (value !== undefined) {
       cleanUpdates[key] = value;
     }
   });
-  
+
   await updateDoc(groupRef, cleanUpdates);
 };
 
@@ -104,35 +145,37 @@ export const updateGroup = async (
  * Join a group
  */
 export const joinGroup = async (groupId: string, userId: string): Promise<void> => {
+  // Validate group ID format (should be 4 characters)
+  if (!groupId || groupId.length !== 4) {
+    throw new Error('Invalid Group ID format. Group IDs should be 4 characters (letters and numbers).');
+  }
+
   const groupRef = doc(db, 'groups', groupId);
-  
+
   let groupDoc;
   try {
     groupDoc = await getDoc(groupRef);
   } catch (err: any) {
     // If it's a permission error, it's likely because the group doesn't exist
-    // or the user doesn't have access. Convert to "not found" error.
-    if (err.code === 'permission-denied' || err.message?.includes('permission') || err.message?.includes('Missing or insufficient')) {
-      throw new Error('Group with this ID not found');
-    }
-    // Re-throw the original error if it's something else
-    throw err;
+    // (With updated rules, authenticated users should be able to read all groups)
+    console.error('Error fetching group:', err);
+    throw new Error('Group not found - please check the ID and try again');
   }
 
   if (!groupDoc.exists()) {
-    throw new Error('Group with this ID not found');
+    throw new Error('Group not found - please check the ID and try again');
   }
 
   const group = groupDoc.data() as Group;
   // Check if user is already a member
   if (group.members.some(m => m.userId === userId)) {
-    throw new Error('User is already a member of this group');
+    throw new Error('You are already a member of this group');
   }
 
   // Get user details to store in members
   const { getUserById } = await import('./users');
   const user = await getUserById(userId);
-  
+
   if (!user) {
     throw new Error('User not found');
   }
@@ -151,6 +194,59 @@ export const joinGroup = async (groupId: string, userId: string): Promise<void> 
 };
 
 /**
+ * Invite a user to join a group (creator only)
+ */
+export const inviteUserToGroup = async (
+  groupId: string,
+  inviterUserId: string,
+  inviteeUniqueId: string
+): Promise<void> => {
+  const groupRef = doc(db, 'groups', groupId);
+  const groupDoc = await getDoc(groupRef);
+
+  if (!groupDoc.exists()) {
+    throw new Error('Group not found');
+  }
+
+  const group = groupDoc.data() as Group;
+
+  // Only group creator can invite
+  if (group.createdBy !== inviterUserId) {
+    throw new Error('Only the group creator can invite members');
+  }
+
+  // Find user by uniqueId
+  const usersRef = collection(db, 'users');
+  const userQuery = query(usersRef, where('uniqueId', '==', inviteeUniqueId));
+  const userSnapshot = await getDocs(userQuery);
+
+  if (userSnapshot.empty) {
+    throw new Error('User with this ID not found');
+  }
+
+  const inviteeUser = userSnapshot.docs[0];
+  const inviteeUserId = inviteeUser.id;
+  const inviteeData = inviteeUser.data();
+
+  // Check if user is already a member
+  if (group.members.some(m => m.userId === inviteeUserId)) {
+    throw new Error('User is already a member of this group');
+  }
+
+  const member: GroupMember = {
+    userId: inviteeUserId,
+    uniqueId: inviteeData.uniqueId,
+    displayName: inviteeData.displayName,
+  };
+
+  await updateDoc(groupRef, {
+    members: arrayUnion(member),
+    memberIds: arrayUnion(inviteeUserId),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+/**
  * Leave a group
  */
 export const leaveGroup = async (groupId: string, userId: string): Promise<void> => {
@@ -163,7 +259,7 @@ export const leaveGroup = async (groupId: string, userId: string): Promise<void>
 
   const group = groupDoc.data() as Group;
   const memberToRemove = group.members.find(m => m.userId === userId);
-  
+
   if (!memberToRemove) {
     throw new Error('User is not a member of this group');
   }

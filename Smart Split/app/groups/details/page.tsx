@@ -9,6 +9,7 @@ import {
   uploadGroupPicture,
   updateGroup,
   leaveGroup,
+  inviteUserToGroup,
 } from '@/src/utils/groups';
 import {
   getGroupExpenses,
@@ -62,6 +63,11 @@ export default function GroupDetails() {
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
+
+  // Invite modal state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteeUniqueId, setInviteeUniqueId] = useState('');
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -228,7 +234,12 @@ export default function GroupDetails() {
     return expenses.reduce((sum, expense) => sum + expense.amount, 0);
   };
 
-  const getUserName = (userId: string): string => {
+  const getUserName = (userId: string, expense?: Expense): string => {
+    // If expense provided, try to use participantNames first
+    if (expense && expense.participantNames && expense.participantNames[userId]) {
+      return userId === user?.uid ? 'You' : expense.participantNames[userId];
+    }
+    // Fallback to members list
     if (userId === user?.uid) return 'You';
     const member = members.find((m) => m.uid === userId);
     return member?.displayName || 'Unknown';
@@ -284,6 +295,28 @@ export default function GroupDetails() {
       setLeaving(false);
     }
   };
+
+  const handleInviteMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !groupId || !inviteeUniqueId.trim()) return;
+
+    setInviting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await inviteUserToGroup(groupId, user.uid, inviteeUniqueId.trim());
+      setSuccess('Member invited successfully!');
+      setInviteeUniqueId('');
+      setShowInviteModal(false);
+      await loadGroupData(); // Reload to show new member
+    } catch (err: any) {
+      setError(err.message || 'Failed to invite member');
+    } finally {
+      setInviting(false);
+    }
+  };
+
 
   if (authLoading || loading || !user || !userData) {
     return (
@@ -411,6 +444,15 @@ export default function GroupDetails() {
                   </div>
                 ))}
               </div>
+              {/* Invite button - only visible to group creator */}
+              {group?.createdBy === user?.uid && (
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium active:scale-95 transition-transform"
+                >
+                  Invite Member
+                </button>
+              )}
             </div>
 
             {/* Your Balances in Group */}
@@ -475,10 +517,10 @@ export default function GroupDetails() {
                             </span>
                           </div>
                           <p className="text-sm text-gray-600 mb-2">
-                            Paid by {getUserName(expense.payerId)}
+                            Paid by {getUserName(expense.payerId, expense)}
                           </p>
                           <p className="text-sm text-gray-600 mb-2">
-                            Split with: {expense.participants.map(getUserName).join(', ')}
+                            Split with: {expense.participants.map(id => getUserName(id, expense)).join(', ')}
                           </p>
                           <p className="text-xs text-gray-500">
                             {format(expense.date.toDate(), 'MMM dd, yyyy')}
@@ -684,6 +726,54 @@ export default function GroupDetails() {
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
                   >
                     {creating ? 'Creating...' : 'Create Expense'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Invite Member Modal */}
+        {showInviteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Invite Member</h2>
+              <form onSubmit={handleInviteMember}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Friend's Unique ID
+                  </label>
+                  <input
+                    type="text"
+                    value={inviteeUniqueId}
+                    onChange={(e) => setInviteeUniqueId(e.target.value)}
+                    placeholder="Enter their unique ID"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    disabled={inviting}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ask your friend for their unique ID from their profile page
+                  </p>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInviteModal(false);
+                      setInviteeUniqueId('');
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    disabled={inviting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={inviting || !inviteeUniqueId.trim()}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    {inviting ? 'Inviting...' : 'Invite'}
                   </button>
                 </div>
               </form>

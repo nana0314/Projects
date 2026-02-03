@@ -19,7 +19,7 @@ export default function RecentActivity() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   // Filter and sort states
   const [filterPaidByYou, setFilterPaidByYou] = useState(false);
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'all'>('all');
@@ -44,7 +44,7 @@ export default function RecentActivity() {
         getUserExpenses(user.uid),
       ]);
       setFriends(userFriends);
-      
+
       // Filter out group expenses - only show expenses between friends (no groupId)
       const friendExpenses = userExpenses.filter(expense => !expense.groupId);
       setAllExpenses(friendExpenses);
@@ -56,15 +56,27 @@ export default function RecentActivity() {
     }
   };
 
-  const getExpensePayerName = (payerId: string): string => {
-    if (payerId === user?.uid) return 'You';
-    const friend = friends.find((f) => f.uid === payerId);
+  const getExpensePayerName = (expense: Expense): string => {
+    // First try to use stored participantNames (most accurate)
+    if (expense.participantNames && expense.participantNames[expense.payerId]) {
+      return expense.payerId === user?.uid ? 'You' : expense.participantNames[expense.payerId];
+    }
+    // Fallback to looking up in friends list
+    if (expense.payerId === user?.uid) return 'You';
+    const friend = friends.find((f) => f.uid === expense.payerId);
     return friend?.displayName || 'Unknown';
   };
 
-  const getParticipantNames = (participantIds: string[]): string => {
+  const getParticipantNames = (participantIds: string[], expense: Expense): string => {
     return participantIds
-      .map((id) => (id === user?.uid ? 'You' : friends.find((f) => f.uid === id)?.displayName || 'Unknown'))
+      .map((id) => {
+        // Try stored participantNames first
+        if (expense.participantNames && expense.participantNames[id]) {
+          return id === user?.uid ? 'You' : expense.participantNames[id];
+        }
+        // Fallback to friends list
+        return id === user?.uid ? 'You' : friends.find((f) => f.uid === id)?.displayName || 'Unknown';
+      })
       .join(', ');
   };
 
@@ -85,12 +97,12 @@ export default function RecentActivity() {
     filtered.sort((a, b) => {
       const dateA = a.date.toMillis();
       const dateB = b.date.toMillis();
-      
+
       // First compare by expense date
       if (dateA !== dateB) {
         return sortByDate === 'newest' ? dateB - dateA : dateA - dateB;
       }
-      
+
       // If dates are the same, sort by createdAt (time when expense was added)
       const createdAtA = a.createdAt?.toMillis() || 0;
       const createdAtB = b.createdAt?.toMillis() || 0;
@@ -109,7 +121,7 @@ export default function RecentActivity() {
 
   const handleDeleteExpense = async (expenseId: string) => {
     if (!user) return;
-    
+
     if (!confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
       return;
     }
@@ -210,7 +222,7 @@ export default function RecentActivity() {
         ) : expenses.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <p className="text-gray-500 mb-4">
-              {allExpenses.length === 0 
+              {allExpenses.length === 0
                 ? 'No expenses with friends yet.'
                 : 'No expenses match your filters.'}
             </p>
@@ -239,10 +251,10 @@ export default function RecentActivity() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">
-                        Paid by {getExpensePayerName(expense.payerId)}
+                        Paid by {getExpensePayerName(expense)}
                       </p>
                       <p className="text-sm text-gray-600 mb-2">
-                        Split with: {getParticipantNames(expense.participants)}
+                        Split with: {getParticipantNames(expense.participants, expense)}
                       </p>
                       <p className="text-xs text-gray-500">
                         {format(expense.date.toDate(), 'MMM dd, yyyy')}

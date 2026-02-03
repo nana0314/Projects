@@ -7,7 +7,7 @@ import { useAuth } from '@/src/context/AuthContext';
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, userData } = useAuth(); // ADD: Get userData as well
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -19,16 +19,19 @@ export default function BottomNav() {
   }
 
   // Determine which page is active
-  const isFriendsActive = pathname === '/friends';
-  const isGroupsActive = pathname === '/groups' || pathname.startsWith('/groups/');
-  const isActivityActive = pathname === '/activity';
-  const isAccountActive = pathname === '/profile';
+  const isFriendsActive = pathname === '/friends' || pathname?.startsWith('/friends/');
+  const isGroupsActive = pathname === '/groups' || pathname?.startsWith('/groups/');
+  const isActivityActive = pathname === '/activity' || pathname?.startsWith('/activity/');
+  const isAccountActive = pathname === '/profile' || pathname?.startsWith('/profile/');
 
-  const showAccountPhoto = mounted && !!user?.photoURL;
+  // FIXED: Prefer userData.photoURL (Firestore) over user.photoURL (Auth)
+  // This ensures immediate updates after profile picture upload
+  const profilePhotoURL = userData?.photoURL || user?.photoURL;
+  const showAccountPhoto = mounted && !!profilePhotoURL;
 
   const accountIcon = showAccountPhoto ? (
     <img
-      src={user!.photoURL!}
+      src={profilePhotoURL!}
       alt="Account"
       className="w-6 h-6 mb-0.5 rounded-full object-cover"
     />

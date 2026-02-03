@@ -36,6 +36,6 @@ Create PNG images with these specifications:
 ## After Adding Icons
 
 1. Rebuild the app: `npm run build`
-2. Deploy: `firebase deploy --only hosting`
+2. Deploy: `vercel --prod`
 
 The PWA will be installable on both iOS and Android devices!
