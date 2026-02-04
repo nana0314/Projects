@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import { getUserFriends } from '@/src/utils/friends';
+import { getUserGroups } from '@/src/utils/groups';
 import { getUserExpenses, deleteExpense } from '@/src/utils/expenses';
-import { Expense, User, ExpenseCategory } from '@/src/types';
+import { Expense, User, ExpenseCategory, Group } from '@/src/types';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
@@ -15,6 +16,7 @@ export default function RecentActivity() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [friends, setFriends] = useState<User[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -39,16 +41,17 @@ export default function RecentActivity() {
     if (!user) return;
     try {
       setLoadingExpenses(true);
-      const [userFriends, userExpenses] = await Promise.all([
+      const [userFriends, userExpenses, userGroups] = await Promise.all([
         getUserFriends(user.uid),
         getUserExpenses(user.uid),
+        getUserGroups(user.uid),
       ]);
       setFriends(userFriends);
+      setGroups(userGroups);
 
-      // Filter out group expenses - only show expenses between friends (no groupId)
-      const friendExpenses = userExpenses.filter(expense => !expense.groupId);
-      setAllExpenses(friendExpenses);
-      applyFiltersAndSort(friendExpenses);
+      // Include all expenses (friend and group)
+      setAllExpenses(userExpenses);
+      applyFiltersAndSort(userExpenses);
     } catch (err: any) {
       setError(err.message || 'Failed to load data');
     } finally {
@@ -78,6 +81,30 @@ export default function RecentActivity() {
         return id === user?.uid ? 'You' : friends.find((f) => f.uid === id)?.displayName || 'Unknown';
       })
       .join(', ');
+  };
+
+  const getPayerPhoto = (expense: Expense): string | null => {
+    if (expense.payerId === user?.uid) {
+      return userData?.photoURL || null;
+    }
+    const friend = friends.find((f) => f.uid === expense.payerId);
+    return friend?.photoURL || null;
+  };
+
+  const getGroupName = (groupId: string): string => {
+    const group = groups.find((g) => g.id === groupId);
+    return group?.name || 'Unknown Group';
+  };
+
+  const getParticipantAvatars = (expense: Expense): { uid: string; photo: string | null; name: string }[] => {
+    return expense.participants.map((id) => {
+      if (id === user?.uid) {
+        return { uid: id, photo: userData?.photoURL || null, name: 'You' };
+      }
+      const friend = friends.find((f) => f.uid === id);
+      const name = expense.participantNames?.[id] || friend?.displayName || 'Unknown';
+      return { uid: id, photo: friend?.photoURL || null, name };
+    });
   };
 
   const applyFiltersAndSort = (expensesToFilter: Expense[]) => {
@@ -155,7 +182,7 @@ export default function RecentActivity() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Recent Activity</h1>
-            <p className="text-gray-600 mt-1">Expenses between you and your friends</p>
+            <p className="text-gray-600 mt-1">Your expenses with friends and groups</p>
           </div>
         </div>
 
@@ -221,61 +248,113 @@ export default function RecentActivity() {
           <div className="text-center py-12 text-gray-500">Loading expenses...</div>
         ) : expenses.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 mb-4">
+            <p className="text-gray-500">
               {allExpenses.length === 0
                 ? 'No expenses with friends yet.'
                 : 'No expenses match your filters.'}
             </p>
-            {allExpenses.length === 0 && (
-              <Link
-                href="/expenses"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block"
-              >
-                Add Your First Expense
-              </Link>
-            )}
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="divide-y divide-gray-200">
-              {expenses.map((expense) => (
-                <div key={expense.id} className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                          {expense.category}
-                        </span>
-                        <span className="text-xl font-bold text-gray-800">
-                          ${expense.amount.toFixed(2)}
-                        </span>
+              {expenses.map((expense) => {
+                const payerPhoto = getPayerPhoto(expense);
+                const payerName = getExpensePayerName(expense);
+                const participantAvatars = getParticipantAvatars(expense);
+                const maxAvatars = 5;
+                const extraCount = participantAvatars.length - maxAvatars;
+
+                return (
+                  <div key={expense.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      {/* Payer avatar */}
+                      {payerPhoto ? (
+                        <img
+                          src={payerPhoto}
+                          alt={payerName}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm text-gray-500 font-medium">
+                            {payerName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Main content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {payerName} paid
+                              {expense.groupId && (
+                                <><span className="text-gray-900"> in </span><span className="text-green-600">{getGroupName(expense.groupId)}</span></>
+                              )}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate">
+                              {expense.description || expense.category}
+                            </p>
+                          </div>
+                          <span className="text-lg font-bold text-gray-900 flex-shrink-0">
+                            ${expense.amount.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Participant avatars row */}
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-500 mr-2">Split with:</span>
+                            <div className="flex -space-x-2">
+                              {participantAvatars.slice(0, maxAvatars).map((p, idx) => (
+                                p.photo ? (
+                                  <img
+                                    key={p.uid}
+                                    src={p.photo}
+                                    alt={p.name}
+                                    title={p.name}
+                                    className="w-6 h-6 rounded-full object-cover border-2 border-white"
+                                  />
+                                ) : (
+                                  <div
+                                    key={p.uid}
+                                    title={p.name}
+                                    className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white"
+                                  >
+                                    <span className="text-xs text-gray-600">
+                                      {p.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )
+                              ))}
+                              {extraCount > 0 && (
+                                <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center border-2 border-white">
+                                  <span className="text-xs text-white font-medium">+{extraCount}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {format(expense.date.toDate(), 'MMM dd, yyyy')}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Paid by {getExpensePayerName(expense)}
-                      </p>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Split with: {getParticipantNames(expense.participants, expense)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {format(expense.date.toDate(), 'MMM dd, yyyy')}
-                      </p>
-                      {expense.description && (
-                        <p className="text-sm text-gray-700 mt-2">{expense.description}</p>
+
+                      {/* Delete button */}
+                      {(expense.createdBy === user?.uid || expense.payerId === user?.uid) && (
+                        <button
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          disabled={deleting === expense.id}
+                          className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                          title="Delete expense"
+                        >
+                          {deleting === expense.id ? '...' : '×'}
+                        </button>
                       )}
                     </div>
-                    {(expense.createdBy === user?.uid || expense.payerId === user?.uid) && (
-                      <button
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        disabled={deleting === expense.id}
-                        className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title="Delete expense"
-                      >
-                        {deleting === expense.id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

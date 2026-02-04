@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   Timestamp,
   deleteDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/src/config/firebase';
 import { Expense, ExpenseCategory } from '@/src/types';
@@ -95,7 +96,7 @@ export const deleteExpense = async (expenseId: string, userId: string): Promise<
   }
 
   const expense = expenseDoc.data() as Expense;
-  
+
   // Only allow deletion if user is the creator or payer
   if (expense.createdBy !== userId && expense.payerId !== userId) {
     throw new Error('You do not have permission to delete this expense');
@@ -109,7 +110,7 @@ export const deleteExpense = async (expenseId: string, userId: string): Promise<
  */
 export const getUserExpenses = async (userId: string): Promise<Expense[]> => {
   const expensesRef = collection(db, 'expenses');
-  
+
   // Get expenses where user is payer
   const payerQuery = query(
     expensesRef,
@@ -124,9 +125,17 @@ export const getUserExpenses = async (userId: string): Promise<Expense[]> => {
     orderBy('date', 'desc')
   );
 
+  // Get expenses created by user
+  const creatorQuery = query(
+    expensesRef,
+    where('createdBy', '==', userId),
+    orderBy('date', 'desc')
+  );
+
   let payerSnapshot;
   let participantSnapshot;
-  
+  let creatorSnapshot;
+
   try {
     payerSnapshot = await getDocs(payerQuery);
   } catch (error) {
@@ -139,6 +148,12 @@ export const getUserExpenses = async (userId: string): Promise<Expense[]> => {
     participantSnapshot = null;
   }
 
+  try {
+    creatorSnapshot = await getDocs(creatorQuery);
+  } catch (error) {
+    creatorSnapshot = null;
+  }
+
   const expenseMap = new Map<string, Expense>();
 
   if (payerSnapshot) {
@@ -149,6 +164,14 @@ export const getUserExpenses = async (userId: string): Promise<Expense[]> => {
 
   if (participantSnapshot) {
     participantSnapshot.forEach((doc) => {
+      if (!expenseMap.has(doc.id)) {
+        expenseMap.set(doc.id, { id: doc.id, ...doc.data() } as Expense);
+      }
+    });
+  }
+
+  if (creatorSnapshot) {
+    creatorSnapshot.forEach((doc) => {
       if (!expenseMap.has(doc.id)) {
         expenseMap.set(doc.id, { id: doc.id, ...doc.data() } as Expense);
       }
@@ -196,6 +219,9 @@ export const calculateUserBalances = async (userId: string): Promise<{
   const owedFrom: { [userId: string]: number } = {};
 
   expenses.forEach((expense) => {
+    // Skip settled expenses in balance calculations
+    if (expense.settledAt) return;
+
     let splitAmounts: { [userId: string]: number } = {};
 
     if (expense.splitType === 'equal') {
@@ -247,6 +273,9 @@ export const calculateGroupBalances = async (
   const owedFrom: { [userId: string]: number } = {};
 
   expenses.forEach((expense) => {
+    // Skip settled expenses in balance calculations
+    if (expense.settledAt) return;
+
     let splitAmounts: { [userId: string]: number } = {};
 
     if (expense.splitType === 'equal') {
@@ -292,7 +321,7 @@ export const calculateFriendOnlyBalances = async (userId: string): Promise<{
   owedFrom: { [userId: string]: number };
 }> => {
   const expenses = await getUserExpenses(userId);
-  const friendOnly = expenses.filter((e) => !e.groupId);
+  const friendOnly = expenses.filter((e) => !e.groupId && !e.settledAt);
   const owedTo: { [userId: string]: number } = {};
   const owedFrom: { [userId: string]: number } = {};
 
@@ -324,21 +353,28 @@ export const calculateFriendOnlyBalances = async (userId: string): Promise<{
 
 /**
  * Settle up expenses between user and a specific friend (friend-to-friend only, no group).
+ * Marks expenses as settled instead of deleting to preserve history.
  */
 export const settleUpExpensesForFriend = async (userId: string, friendId: string): Promise<void> => {
   const expenses = await getUserExpenses(userId);
-  const toDelete = expenses.filter(
-    (e) => !e.groupId && e.participants.includes(friendId)
+  const toSettle = expenses.filter(
+    (e) => !e.groupId && e.participants.includes(friendId) && !e.settledAt
   );
-  await Promise.all(toDelete.map((e) => deleteDoc(doc(db, 'expenses', e.id))));
+  await Promise.all(toSettle.map((e) =>
+    updateDoc(doc(db, 'expenses', e.id), { settledAt: serverTimestamp() })
+  ));
 };
 
 /**
  * Settle up all expenses for a specific group.
+ * Marks expenses as settled instead of deleting to preserve history.
  */
 export const settleUpExpensesForGroup = async (groupId: string): Promise<void> => {
   const expenses = await getGroupExpenses(groupId);
-  await Promise.all(expenses.map((e) => deleteDoc(doc(db, 'expenses', e.id))));
+  const toSettle = expenses.filter((e) => !e.settledAt);
+  await Promise.all(toSettle.map((e) =>
+    updateDoc(doc(db, 'expenses', e.id), { settledAt: serverTimestamp() })
+  ));
 };
 
 /**
@@ -346,14 +382,14 @@ export const settleUpExpensesForGroup = async (groupId: string): Promise<void> =
  */
 export const settleUpExpenses = async (userId: string): Promise<void> => {
   const expensesRef = collection(db, 'expenses');
-  
+
   // Get all expenses where user is involved
   const payerQuery = query(expensesRef, where('payerId', '==', userId));
   const participantQuery = query(expensesRef, where('participants', 'array-contains', userId));
 
   let payerSnapshot;
   let participantSnapshot;
-  
+
   try {
     payerSnapshot = await getDocs(payerQuery);
   } catch (error) {

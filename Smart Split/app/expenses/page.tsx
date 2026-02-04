@@ -91,6 +91,20 @@ export default function Expenses() {
     }
   };
 
+  // Listen for global simplify toggle from floating button
+  useEffect(() => {
+    const handleSimplifyToggle = (event: any) => {
+      setSimplifyEnabled(event.detail.enabled);
+    };
+
+    // Load initial state from localStorage
+    const saved = localStorage.getItem('simplifyEnabled');
+    setSimplifyEnabled(saved === 'true');
+
+    window.addEventListener('simplifyToggled', handleSimplifyToggle);
+    return () => window.removeEventListener('simplifyToggled', handleSimplifyToggle);
+  }, []);
+
   // Calculate simplified debts when balances change or simplify is toggled
   useEffect(() => {
     if (!user || !simplifyEnabled) {
@@ -322,24 +336,13 @@ export default function Expenses() {
               )}
             </p>
             {!loadingBalances && (
-              <>
-                <button
-                  onClick={() => setSimplifyEnabled(!simplifyEnabled)}
-                  className={`mt-4 w-full px-4 py-2 rounded-lg text-sm font-medium transition-all ${simplifyEnabled
-                    ? 'bg-purple-600 text-white hover:bg-purple-700'
-                    : 'bg-white border-2 border-purple-600 text-purple-600 hover:bg-purple-50'
-                    }`}
-                >
-                  {simplifyEnabled ? '✓ Simplify ON' : 'Simplify Debts'}
-                </button>
-                <button
-                  onClick={handleSettleUp}
-                  disabled={settlingUp || (totalOwedTo === 0 && totalOwedFrom === 0)}
-                  className="mt-3 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
-                >
-                  {settlingUp ? 'Settling Up...' : 'Settle Up'}
-                </button>
-              </>
+              <button
+                onClick={handleSettleUp}
+                disabled={settlingUp || (totalOwedTo === 0 && totalOwedFrom === 0)}
+                className="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
+              >
+                {settlingUp ? 'Settling Up...' : 'Settle Up'}
+              </button>
             )}
           </div>
         </div>

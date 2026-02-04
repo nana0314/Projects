@@ -7,9 +7,9 @@ import { useAuth } from '@/src/context/AuthContext';
 import { getUserFriends } from '@/src/utils/friends';
 import { getUserGroups, getGroupMembers } from '@/src/utils/groups';
 import { createExpense } from '@/src/utils/expenses';
-import { User, Group } from '@/src/types';
+import { User, Group, ExpenseCategory } from '@/src/types';
 
-type FriendOption = 'you_paid_equal' | 'you_owed_full' | 'friend_paid_equal' | 'friend_owed_full';
+type FriendOption = 'you_paid_equal' | 'you_owed_full' | 'friend_paid_equal' | 'friend_owed_full' | 'custom';
 
 export default function AddExpensePage() {
   const router = useRouter();
@@ -32,6 +32,11 @@ export default function AddExpensePage() {
 
   // Friend flow
   const [friendOption, setFriendOption] = useState<FriendOption>('you_paid_equal');
+  const [friendPayerId, setFriendPayerId] = useState<string>('');
+  const [friendCustomAmounts, setFriendCustomAmounts] = useState<{ you: string; friend: string }>({ you: '', friend: '' });
+
+  // Category
+  const [category, setCategory] = useState<ExpenseCategory>('Food');
 
   // Group flow
   const [payerId, setPayerId] = useState('');
@@ -91,10 +96,27 @@ export default function AddExpensePage() {
     }
   };
 
+  // Handle pre-selection from URL params (e.g., from group details page)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && groups.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const preselectedGroupId = params.get('groupId');
+      if (preselectedGroupId && !selectedGroup && !selectedFriend) {
+        const group = groups.find(g => g.id === preselectedGroupId);
+        if (group) {
+          selectGroup(group);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups]);
+
   const selectFriend = (f: User) => {
     setSelectedFriend(f);
     setSelectedGroup(null);
     setFriendOption('you_paid_equal');
+    setFriendPayerId(user?.uid || '');
+    setFriendCustomAmounts({ you: '', friend: '' });
   };
 
   const selectGroup = (g: Group) => {
@@ -106,11 +128,14 @@ export default function AddExpensePage() {
     setSelectedFriend(null);
     setSelectedGroup(null);
     setFriendOption('you_paid_equal');
+    setFriendPayerId(user?.uid || '');
+    setFriendCustomAmounts({ you: '', friend: '' });
     setParticipants([]);
     setPayerId(user?.uid || '');
     setCustomAmounts({});
     setShowCustom(false);
     setSplitType('equal');
+    setCategory('Food');
   };
 
   const toggleParticipant = (uid: string) => {
@@ -130,15 +155,19 @@ export default function AddExpensePage() {
   );
   const customValid = !showCustom || Math.abs(totalCustom - amountNum) < 0.01;
 
+  // Friend custom validation
+  const friendCustomTotal = (parseFloat(friendCustomAmounts.you) || 0) + (parseFloat(friendCustomAmounts.friend) || 0);
+  const friendCustomValid = friendOption !== 'custom' || Math.abs(friendCustomTotal - amountNum) < 0.01;
+
   const canSubmit =
     isValidAmount &&
     (selectedFriend || selectedGroup) &&
     (selectedFriend
-      ? true
+      ? (friendOption !== 'custom' || (friendCustomValid && friendPayerId))
       : selectedGroup &&
-        participants.length >= 2 &&
-        payerId &&
-        (effectiveSplitType === 'equal' || (showCustom && customValid)));
+      participants.length >= 2 &&
+      payerId &&
+      (effectiveSplitType === 'equal' || (showCustom && customValid)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,7 +180,6 @@ export default function AddExpensePage() {
     try {
       const expenseAmount = amountNum;
       const date = new Date();
-      const category = 'Food';
       const createdBy = user.uid;
 
       if (selectedFriend) {
@@ -167,7 +195,7 @@ export default function AddExpensePage() {
             splitType = 'equal';
             break;
           case 'you_owed_full':
-            payerId = friend.uid;
+            payerId = user.uid;
             splitType = 'custom';
             splitAmounts = { [user.uid]: 0, [friend.uid]: expenseAmount };
             break;
@@ -176,9 +204,17 @@ export default function AddExpensePage() {
             splitType = 'equal';
             break;
           case 'friend_owed_full':
-            payerId = user.uid;
+            payerId = friend.uid;
             splitType = 'custom';
-            splitAmounts = { [user.uid]: 0, [friend.uid]: expenseAmount };
+            splitAmounts = { [user.uid]: expenseAmount, [friend.uid]: 0 };
+            break;
+          case 'custom':
+            payerId = friendPayerId;
+            splitType = 'custom';
+            splitAmounts = {
+              [user.uid]: parseFloat(friendCustomAmounts.you) || 0,
+              [friend.uid]: parseFloat(friendCustomAmounts.friend) || 0,
+            };
             break;
           default:
             payerId = user.uid;
@@ -296,11 +332,10 @@ export default function AddExpensePage() {
                         key={f.uid}
                         type="button"
                         onClick={() => selectFriend(f)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${
-                          selectedFriend?.uid === f.uid
-                            ? 'bg-green-600 text-white'
-                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${selectedFriend?.uid === f.uid
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
                       >
                         {f.displayName}
                       </button>
@@ -317,11 +352,10 @@ export default function AddExpensePage() {
                         key={g.id}
                         type="button"
                         onClick={() => selectGroup(g)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${
-                          selectedGroup?.id === g.id
-                            ? 'bg-green-600 text-white'
-                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${selectedGroup?.id === g.id
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
                       >
                         {g.name}
                       </button>
@@ -359,6 +393,27 @@ export default function AddExpensePage() {
                 placeholder="e.g. Dinner at Pizza Hut"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               />
+            </section>
+
+            {/* Category */}
+            <section>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="Food">Food</option>
+                <option value="Rental">Rental</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Beverage">Beverage</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Travel">Travel</option>
+                <option value="Other">Other</option>
+              </select>
             </section>
 
             {/* Amount */}
@@ -424,7 +479,75 @@ export default function AddExpensePage() {
                       {selectedFriend.displayName} is owed the full amount
                     </span>
                   </label>
+                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="friendOption"
+                      checked={friendOption === 'custom'}
+                      onChange={() => {
+                        setFriendOption('custom');
+                        setFriendPayerId(user?.uid || '');
+                      }}
+                      className="text-green-600"
+                    />
+                    <span className="text-gray-900">Custom amount</span>
+                  </label>
                 </div>
+
+                {/* Custom amount UI for friend */}
+                {friendOption === 'custom' && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Who paid?
+                      </label>
+                      <select
+                        value={friendPayerId}
+                        onChange={(e) => setFriendPayerId(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                      >
+                        <option value={user?.uid || ''}>You</option>
+                        <option value={selectedFriend.uid}>{selectedFriend.displayName}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        How much does each person owe?
+                      </label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="w-32 text-sm text-gray-700">You:</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={friendCustomAmounts.you}
+                            onChange={(e) => setFriendCustomAmounts(prev => ({ ...prev, you: e.target.value }))}
+                            placeholder="0.00"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="w-32 text-sm text-gray-700 truncate">{selectedFriend.displayName}:</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={friendCustomAmounts.friend}
+                            onChange={(e) => setFriendCustomAmounts(prev => ({ ...prev, friend: e.target.value }))}
+                            placeholder="0.00"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                      </div>
+                      {isValidAmount && !friendCustomValid && (
+                        <p className="text-sm text-red-500 mt-2">
+                          Amounts must add up to ${amountNum.toFixed(2)} (currently ${friendCustomTotal.toFixed(2)})
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
@@ -458,11 +581,10 @@ export default function AddExpensePage() {
                         key={m.uid}
                         type="button"
                         onClick={() => toggleParticipant(m.uid)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${
-                          participants.includes(m.uid)
-                            ? 'bg-green-600 text-white'
-                            : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-                        }`}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${participants.includes(m.uid)
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+                          }`}
                       >
                         {m.uid === user.uid ? 'You' : m.displayName}
                       </button>

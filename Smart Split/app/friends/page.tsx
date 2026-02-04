@@ -252,18 +252,21 @@ export default function Friends() {
                           <div>
                             <p className="font-semibold text-gray-800">{friend.displayName}</p>
                             <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
-                            {netBalance > 0 && (
-                              <p className="text-sm text-green-600 font-medium mt-1">
-                                You&apos;re owed ${netBalance.toFixed(2)}
-                              </p>
-                            )}
-                            {netBalance < 0 && (
-                              <p className="text-sm text-red-600 font-medium mt-1">
-                                You owe ${Math.abs(netBalance).toFixed(2)}
-                              </p>
-                            )}
                           </div>
                         </div>
+                        {netBalance > 0 && (
+                          <span className="text-sm text-green-600 font-medium">
+                            You're owed ${netBalance.toFixed(2)}
+                          </span>
+                        )}
+                        {netBalance < 0 && (
+                          <span className="text-sm text-red-600 font-medium">
+                            You owe ${Math.abs(netBalance).toFixed(2)}
+                          </span>
+                        )}
+                        {netBalance === 0 && (
+                          <span className="text-sm text-gray-400">settled up</span>
+                        )}
                       </div>
                     );
                   })}
@@ -303,9 +306,10 @@ export default function Friends() {
                             )}
                             <div>
                               <p className="font-semibold text-gray-800">{friend.displayName}</p>
-                              <p className="text-sm text-gray-500">ID: {friend.uniqueId} · Settled up</p>
+                              <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
                             </div>
                           </div>
+                          <span className="text-sm text-gray-400">settled up</span>
                         </div>
                       ))}
                     </>
@@ -328,9 +332,10 @@ export default function Friends() {
                         )}
                         <div>
                           <p className="font-semibold text-gray-800">{friend.displayName}</p>
-                          <p className="text-sm text-gray-500">ID: {friend.uniqueId} · Settled up</p>
+                          <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
                         </div>
                       </div>
+                      <span className="text-sm text-gray-400">settled up</span>
                     </div>
                   ))}
                 </div>

@@ -145,12 +145,13 @@ export const updateGroup = async (
  * Join a group
  */
 export const joinGroup = async (groupId: string, userId: string): Promise<void> => {
-  // Validate group ID format (should be 4 characters)
-  if (!groupId || groupId.length !== 4) {
-    throw new Error('Invalid Group ID format. Group IDs should be 4 characters (letters and numbers).');
+  // Validate group ID is not empty
+  const trimmedId = groupId?.trim().toUpperCase();
+  if (!trimmedId) {
+    throw new Error('Group ID is required');
   }
 
-  const groupRef = doc(db, 'groups', groupId);
+  const groupRef = doc(db, 'groups', trimmedId);
 
   let groupDoc;
   try {
@@ -274,6 +275,46 @@ export const leaveGroup = async (groupId: string, userId: string): Promise<void>
       updatedAt: serverTimestamp(),
     });
   }
+};
+
+/**
+ * Remove a member from a group (creator only)
+ */
+export const removeMemberFromGroup = async (
+  groupId: string,
+  memberUserId: string,
+  creatorUserId: string
+): Promise<void> => {
+  const groupRef = doc(db, 'groups', groupId);
+  const groupDoc = await getDoc(groupRef);
+
+  if (!groupDoc.exists()) {
+    throw new Error('Group not found');
+  }
+
+  const group = groupDoc.data() as Group;
+
+  // Only the creator can remove members
+  if (group.createdBy !== creatorUserId) {
+    throw new Error('Only the group creator can remove members');
+  }
+
+  // Cannot remove yourself - use leaveGroup instead
+  if (memberUserId === creatorUserId) {
+    throw new Error('Creator cannot remove themselves. Use leave group or delete group instead.');
+  }
+
+  const memberToRemove = group.members.find(m => m.userId === memberUserId);
+
+  if (!memberToRemove) {
+    throw new Error('User is not a member of this group');
+  }
+
+  await updateDoc(groupRef, {
+    members: arrayRemove(memberToRemove),
+    memberIds: arrayRemove(memberUserId),
+    updatedAt: serverTimestamp(),
+  });
 };
 
 /**

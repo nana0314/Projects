@@ -5,6 +5,7 @@ import PWARegister from "@/src/components/PWARegister";
 import BottomNav from "@/src/components/BottomNav";
 import FloatingAddExpense from "@/src/components/FloatingAddExpense";
 import FloatingSettleUp from "@/src/components/FloatingSettleUp";
+import FloatingSimplify from "@/src/components/FloatingSimplify";
 
 export const metadata: Metadata = {
   title: "Smart Split - Split Expenses with Friends",
@@ -53,6 +54,7 @@ export default function RootLayout({
           <SpeedInsights />
           <BottomNav />
           <FloatingSettleUp />
+          <FloatingSimplify />
           <FloatingAddExpense />
           <PWARegister />
         </AuthProvider>

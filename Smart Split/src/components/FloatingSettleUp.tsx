@@ -8,7 +8,7 @@ import { getUserGroups } from '@/src/utils/groups';
 import { getUserById } from '@/src/utils/users';
 import { performSettleUpForFriend, performSettleUpForGroup } from '@/src/utils/settleUpStorage';
 
-type SettleTarget = { type: 'friend'; id: string; name: string; net: number } | { type: 'group'; id: string; name: string; net: number };
+type SettleTarget = { type: 'friend'; id: string; name: string; photoURL?: string; net: number } | { type: 'group'; id: string; name: string; photoURL?: string; net: number };
 
 export default function FloatingSettleUp() {
   const pathname = usePathname();
@@ -20,14 +20,21 @@ export default function FloatingSettleUp() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // New state for inline confirmation and settled status
+  const [confirmTarget, setConfirmTarget] = useState<string | null>(null);
+  const [settledIds, setSettledIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (showModal && user) {
       loadTargets();
+      setSettledIds(new Set()); // Reset settled status when modal opens
+      setConfirmTarget(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showModal, user]);
 
   const loadTargets = async () => {
+    // ... (rest of loadTargets is fine, handled by previous code or unchanged)
     if (!user) return;
     try {
       setLoading(true);
@@ -48,7 +55,7 @@ export default function FloatingSettleUp() {
         const net = from - to;
         if (Math.abs(net) < 0.01) continue;
         const u = await getUserById(fid);
-        list.push({ type: 'friend', id: fid, name: u?.displayName ?? 'Unknown', net });
+        list.push({ type: 'friend', id: fid, name: u?.displayName ?? 'Unknown', photoURL: u?.photoURL, net });
       }
 
       const groups = await getUserGroups(user.uid);
@@ -59,7 +66,7 @@ export default function FloatingSettleUp() {
           const from = Object.values(b.owedFrom).reduce((s, a) => s + a, 0);
           const net = from - to;
           if (Math.abs(net) < 0.01) continue;
-          list.push({ type: 'group', id: g.id, name: g.name, net });
+          list.push({ type: 'group', id: g.id, name: g.name, photoURL: undefined, net });
         } catch {
           /* skip */
         }
@@ -76,24 +83,29 @@ export default function FloatingSettleUp() {
 
   const handleSettle = async (t: SettleTarget) => {
     if (!user) return;
-    const label = t.type === 'friend' ? t.name : `group "${t.name}"`;
-    if (!confirm(`Settle up with ${label}? This will clear those expenses and cannot be undone.`)) return;
+    // Removed native confirm() dialog in favor of inline UI
 
     setSettling(true);
     setError('');
-    setSuccess('');
+    // setSuccess(''); // Don't wipe previous success messages immediately if we want to show per-item status? 
+    // actually per-item status is handled by settledIds.
+
     try {
       if (t.type === 'friend') {
         await performSettleUpForFriend(user.uid, t.id);
       } else {
         await performSettleUpForGroup(user.uid, t.id);
       }
-      setSuccess(`Settled up with ${label}`);
+
+      // Mark as settled locally
+      setSettledIds(prev => new Set(Array.from(prev).concat([t.id])));
+      setConfirmTarget(null); // Close confirm UI
+
+      // Reload after a delay to refresh data, but allow user to see "Settled up"
       setTimeout(() => {
-        setShowModal(false);
-        setSuccess('');
         window.location.reload();
-      }, 800);
+      }, 1500);
+
     } catch (err: any) {
       setError(err.message || 'Failed to settle up');
     } finally {
@@ -101,11 +113,11 @@ export default function FloatingSettleUp() {
     }
   };
 
-  // Hide on login page and Account page (profile). When user presses Account, both buttons disappear.
-  // Also hide on add-expense page and when the settle-up modal is open
-  const isAccountPage = pathname === '/account' || (pathname?.startsWith?.('/profile'));
-  const isAddExpensePage = pathname === '/add-expense';
-  if (!pathname || pathname === '/' || isAccountPage || isAddExpensePage || !user || showModal) {
+  // Only show on specific pages: Friends, Activity, Groups, Expenses
+  const allowedPaths = ['/activity', '/friends', '/groups', '/expenses'];
+  const isAllowed = pathname && allowedPaths.some(path => pathname === path || pathname.startsWith(path + '/'));
+
+  if (!user || !isAllowed) {
     return null;
   }
 
@@ -142,6 +154,9 @@ export default function FloatingSettleUp() {
               </button>
             </div>
             <div className="p-4 overflow-y-auto flex-1">
+              <p className="mb-4 text-sm text-gray-500">
+                Tap <strong className="text-gray-700">Settle</strong> next to a friend or group to clear the balance.
+              </p>
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   {error}
@@ -160,28 +175,68 @@ export default function FloatingSettleUp() {
                 </div>
               ) : (
                 <ul className="space-y-2">
-                  {targets.map((t) => (
-                    <li
-                      key={`${t.type}-${t.id}`}
-                      className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50"
-                    >
-                      <div>
-                        <span className="font-medium text-gray-800">
-                          {t.type === 'group' ? `Group: ${t.name}` : t.name}
-                        </span>
-                        <span className={`ml-2 text-sm ${t.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {t.net >= 0 ? `You're owed $${t.net.toFixed(2)}` : `You owe $${Math.abs(t.net).toFixed(2)}`}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleSettle(t)}
-                        disabled={settling}
-                        className="px-3 py-1.5 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 active:scale-95 transition-transform"
+                  {targets.map((t) => {
+                    const isSettled = settledIds.has(t.id);
+                    const isConfirming = confirmTarget === t.id;
+
+                    return (
+                      <li
+                        key={`${t.type}-${t.id}`}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isSettled ? 'bg-green-50 border-green-200' : 'border-gray-200 hover:bg-gray-50'
+                          }`}
                       >
-                        Settle
-                      </button>
-                    </li>
-                  ))}
+                        <div className="flex items-center gap-3">
+                          {t.photoURL ? (
+                            <img
+                              src={t.photoURL}
+                              alt={t.name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                              <span className="text-sm text-gray-500 font-medium">
+                                {t.type === 'group' ? 'G' : t.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4">
+                            <span className={`font-medium ${isSettled ? 'text-green-800' : 'text-gray-800'}`}>
+                              {t.type === 'group' ? `Group: ${t.name}` : t.name}
+                            </span>
+                            <span className={`text-sm ${isSettled ? 'text-green-600 font-medium' : t.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {isSettled ? 'Settled up ✓' : (t.net >= 0 ? `You're owed $${t.net.toFixed(2)}` : `You owe $${Math.abs(t.net).toFixed(2)}`)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isSettled ? null : isConfirming ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setConfirmTarget(null)}
+                              className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleSettle(t)}
+                              disabled={settling}
+                              className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                            >
+                              Confirm
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmTarget(t.id)}
+                            disabled={settling}
+                            className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-transform"
+                          >
+                            Settle
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

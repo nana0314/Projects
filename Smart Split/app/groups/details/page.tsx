@@ -10,7 +10,9 @@ import {
   updateGroup,
   leaveGroup,
   inviteUserToGroup,
+  removeMemberFromGroup,
 } from '@/src/utils/groups';
+import { getUserFriends } from '@/src/utils/friends';
 import {
   getGroupExpenses,
   createExpense,
@@ -63,11 +65,14 @@ export default function GroupDetails() {
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
 
   // Invite modal state
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteeUniqueId, setInviteeUniqueId] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [friends, setFriends] = useState<User[]>([]);
+  const [selectedFriendsToInvite, setSelectedFriendsToInvite] = useState<Set<string>>(new Set());
+  const [loadingFriends, setLoadingFriends] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -296,22 +301,78 @@ export default function GroupDetails() {
     }
   };
 
-  const handleInviteMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !groupId || !inviteeUniqueId.trim()) return;
+  const loadFriendsForInvite = async () => {
+    if (!user) return;
+    setLoadingFriends(true);
+    try {
+      const userFriends = await getUserFriends(user.uid);
+      // Filter out friends who are already members
+      const memberIds = members.map(m => m.uid);
+      const availableFriends = userFriends.filter(f => !memberIds.includes(f.uid));
+      setFriends(availableFriends);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load friends');
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberUid: string) => {
+    if (!user || !groupId) return;
+
+    if (!confirm('Are you sure you want to remove this member from the group?')) {
+      return;
+    }
+
+    setRemovingMember(memberUid);
+    setError('');
+    setSuccess('');
+
+    try {
+      await removeMemberFromGroup(groupId, memberUid, user.uid);
+      setSuccess('Member removed successfully!');
+      await loadGroupData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove member');
+    } finally {
+      setRemovingMember(null);
+    }
+  };
+
+  const toggleFriendSelection = (friendUid: string) => {
+    setSelectedFriendsToInvite(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(friendUid)) {
+        newSet.delete(friendUid);
+      } else {
+        newSet.add(friendUid);
+      }
+      return newSet;
+    });
+  };
+
+  const handleInviteMembers = async () => {
+    if (!user || !groupId || selectedFriendsToInvite.size === 0) return;
 
     setInviting(true);
     setError('');
     setSuccess('');
 
     try {
-      await inviteUserToGroup(groupId, user.uid, inviteeUniqueId.trim());
-      setSuccess('Member invited successfully!');
-      setInviteeUniqueId('');
+      const invitePromises = Array.from(selectedFriendsToInvite).map(friendUid => {
+        const friend = friends.find(f => f.uid === friendUid);
+        if (friend) {
+          return inviteUserToGroup(groupId, user.uid, friend.uniqueId);
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(invitePromises);
+      setSuccess(`${selectedFriendsToInvite.size} member(s) invited successfully!`);
+      setSelectedFriendsToInvite(new Set());
       setShowInviteModal(false);
-      await loadGroupData(); // Reload to show new member
+      await loadGroupData();
     } catch (err: any) {
-      setError(err.message || 'Failed to invite member');
+      setError(err.message || 'Failed to invite members');
     } finally {
       setInviting(false);
     }
@@ -386,7 +447,7 @@ export default function GroupDetails() {
               </div>
             </div>
             <button
-              onClick={() => setShowExpenseModal(true)}
+              onClick={() => router.push(`/add-expense?groupId=${groupId}`)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Add Expense
@@ -441,13 +502,28 @@ export default function GroupDetails() {
                       <p className="font-medium text-gray-800">{member.displayName}</p>
                       <p className="text-xs text-gray-500">ID: {member.uniqueId}</p>
                     </div>
+                    {/* Remove button - only visible to creator, not for themselves */}
+                    {group?.createdBy === user?.uid && member.uid !== user?.uid && (
+                      <button
+                        onClick={() => handleRemoveMember(member.uid)}
+                        disabled={removingMember === member.uid}
+                        className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="Remove member"
+                      >
+                        {removingMember === member.uid ? '...' : 'Remove'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
               {/* Invite button - only visible to group creator */}
               {group?.createdBy === user?.uid && (
                 <button
-                  onClick={() => setShowInviteModal(true)}
+                  onClick={() => {
+                    loadFriendsForInvite();
+                    setSelectedFriendsToInvite(new Set());
+                    setShowInviteModal(true);
+                  }}
                   className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium active:scale-95 transition-transform"
                 >
                   Invite Member
@@ -458,93 +534,160 @@ export default function GroupDetails() {
             {/* Your Balances in Group */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Balances</h2>
-              {Object.keys(owedTo).length > 0 && (
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">You Owe:</p>
-                  {Object.entries(owedTo).map(([userId, amount]) => (
-                    <div key={userId} className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">{getUserName(userId)}</span>
-                      <span className="text-red-600 font-semibold">${amount.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {Object.keys(owedFrom).length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">You&apos;re Owed:</p>
-                  {Object.entries(owedFrom).map(([userId, amount]) => (
-                    <div key={userId} className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">{getUserName(userId)}</span>
-                      <span className="text-green-600 font-semibold">${amount.toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {Object.keys(owedTo).length === 0 && Object.keys(owedFrom).length === 0 && (
-                <p className="text-sm text-gray-500">No balances in this group</p>
-              )}
+              {(() => {
+                // Calculate net balances per member
+                const allMembers = new Set([...Object.keys(owedTo), ...Object.keys(owedFrom)]);
+                const netBalances: { userId: string; net: number }[] = [];
+
+                allMembers.forEach(userId => {
+                  const youOwe = owedTo[userId] || 0;
+                  const theyOwe = owedFrom[userId] || 0;
+                  const net = theyOwe - youOwe; // positive = they owe you, negative = you owe them
+                  netBalances.push({ userId, net });
+                });
+
+                if (netBalances.length === 0) {
+                  return <p className="text-sm text-gray-400">No balances in this group</p>;
+                }
+
+                return (
+                  <div className="space-y-2">
+                    {netBalances.map(({ userId, net }) => (
+                      <div key={userId} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">{getUserName(userId)}</span>
+                        {net > 0 ? (
+                          <span className="text-green-600 font-semibold">You're owed ${net.toFixed(2)}</span>
+                        ) : net < 0 ? (
+                          <span className="text-red-600 font-semibold">You owe ${Math.abs(net).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-gray-400">settled up</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
+        </div>
 
-          {/* Right Column - Expenses */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-800">Expense History</h2>
+        {/* Right Column - Expenses */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-800">Expense History</h2>
+            </div>
+            {expenses.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <p>No expenses yet.</p>
               </div>
-              {expenses.length === 0 ? (
-                <div className="p-12 text-center text-gray-500">
-                  <p>No expenses yet.</p>
-                  <button
-                    onClick={() => setShowExpenseModal(true)}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Add Your First Expense
-                  </button>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200">
-                  {expenses.map((expense) => (
-                    <div key={expense.id} className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                              {expense.category}
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {expenses.map((expense) => {
+                  const payerName = getUserName(expense.payerId, expense);
+                  const payerMember = members.find(m => m.uid === expense.payerId);
+                  const payerPhoto = payerMember?.photoURL || null;
+                  const participantAvatars = expense.participants.map(id => {
+                    const member = members.find(m => m.uid === id);
+                    return {
+                      uid: id,
+                      photo: member?.photoURL || null,
+                      name: getUserName(id, expense)
+                    };
+                  });
+                  const maxAvatars = 5;
+                  const extraCount = participantAvatars.length - maxAvatars;
+
+                  return (
+                    <div key={expense.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        {/* Payer avatar */}
+                        {payerPhoto ? (
+                          <img
+                            src={payerPhoto}
+                            alt={payerName}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm text-gray-500 font-medium">
+                              {payerName.charAt(0).toUpperCase()}
                             </span>
-                            <span className="text-xl font-bold text-gray-800">
+                          </div>
+                        )}
+
+                        {/* Main content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {payerName} paid
+                              </p>
+                              <p className="text-sm text-gray-500 truncate">
+                                {expense.description || expense.category}
+                              </p>
+                            </div>
+                            <span className="text-lg font-bold text-gray-900 flex-shrink-0">
                               ${expense.amount.toFixed(2)}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Paid by {getUserName(expense.payerId, expense)}
-                          </p>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Split with: {expense.participants.map(id => getUserName(id, expense)).join(', ')}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {format(expense.date.toDate(), 'MMM dd, yyyy')}
-                          </p>
-                          {expense.description && (
-                            <p className="text-sm text-gray-700 mt-2">{expense.description}</p>
-                          )}
+
+                          {/* Participant avatars row */}
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center">
+                              <span className="text-xs text-gray-500 mr-2">Split with:</span>
+                              <div className="flex -space-x-2">
+                                {participantAvatars.slice(0, maxAvatars).map((p) => (
+                                  p.photo ? (
+                                    <img
+                                      key={p.uid}
+                                      src={p.photo}
+                                      alt={p.name}
+                                      title={p.name}
+                                      className="w-6 h-6 rounded-full object-cover border-2 border-white"
+                                    />
+                                  ) : (
+                                    <div
+                                      key={p.uid}
+                                      title={p.name}
+                                      className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white"
+                                    >
+                                      <span className="text-xs text-gray-600">
+                                        {p.name.charAt(0).toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )
+                                ))}
+                                {extraCount > 0 && (
+                                  <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center border-2 border-white">
+                                    <span className="text-xs text-white font-medium">+{extraCount}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-xs text-gray-400">
+                              {format(expense.date.toDate(), 'MMM dd, yyyy')}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Delete button */}
                         {(expense.createdBy === user?.uid || expense.payerId === user?.uid) && (
                           <button
                             onClick={() => handleDeleteExpense(expense.id)}
                             disabled={deleting === expense.id}
-                            className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                             title="Delete expense"
                           >
-                            {deleting === expense.id ? 'Deleting...' : 'Delete'}
+                            {deleting === expense.id ? '...' : '×'}
                           </button>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -731,37 +874,64 @@ export default function GroupDetails() {
               </form>
             </div>
           </div>
-        )}
+        )
+        }
 
         {/* Invite Member Modal */}
-        {showInviteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Invite Member</h2>
-              <form onSubmit={handleInviteMember}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Friend's Unique ID
-                  </label>
-                  <input
-                    type="text"
-                    value={inviteeUniqueId}
-                    onChange={(e) => setInviteeUniqueId(e.target.value)}
-                    placeholder="Enter their unique ID"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    disabled={inviting}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Ask your friend for their unique ID from their profile page
-                  </p>
-                </div>
+        {
+          showInviteModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Invite Friends</h2>
 
-                <div className="flex gap-4">
+                {loadingFriends ? (
+                  <div className="py-8 text-center text-gray-500">Loading friends...</div>
+                ) : friends.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500">
+                    <p>No friends available to invite.</p>
+                    <p className="text-sm mt-2">All your friends are already members of this group.</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto mb-4 space-y-2">
+                    {friends.map((friend) => (
+                      <label
+                        key={friend.uid}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedFriendsToInvite.has(friend.uid)}
+                          onChange={() => toggleFriendSelection(friend.uid)}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        {friend.photoURL ? (
+                          <img
+                            src={friend.photoURL}
+                            alt={friend.displayName}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-sm text-gray-400">
+                              {friend.displayName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800">{friend.displayName}</p>
+                          <p className="text-xs text-gray-500">ID: {friend.uniqueId}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-4 pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => {
                       setShowInviteModal(false);
-                      setInviteeUniqueId('');
+                      setSelectedFriendsToInvite(new Set());
                     }}
                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                     disabled={inviting}
@@ -769,17 +939,17 @@ export default function GroupDetails() {
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    disabled={inviting || !inviteeUniqueId.trim()}
+                    type="button"
+                    onClick={handleInviteMembers}
+                    disabled={inviting || selectedFriendsToInvite.size === 0}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
                   >
-                    {inviting ? 'Inviting...' : 'Invite'}
+                    {inviting ? 'Inviting...' : `Invite (${selectedFriendsToInvite.size})`}
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </main>
     </div>
   );

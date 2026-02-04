@@ -8,9 +8,11 @@ export default function FloatingAddExpense() {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const isAccountPage = pathname === '/account' || pathname?.startsWith?.('/profile');
-  const isAddExpensePage = pathname === '/add-expense';
-  if (!pathname || pathname === '/' || isAccountPage || isAddExpensePage || !user) {
+  // Only show on specific pages: Friends, Activity, Groups, Expenses
+  const allowedPaths = ['/activity', '/friends', '/groups', '/expenses'];
+  const isAllowed = pathname && allowedPaths.some(path => pathname === path || pathname.startsWith(path + '/'));
+
+  if (!user || !isAllowed) {
     return null;
   }
 
