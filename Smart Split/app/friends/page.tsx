@@ -8,9 +8,10 @@ import { calculateUserBalances, getUserExpenses } from '@/src/utils/expenses';
 import { getSettleUpData, shouldHideSettledUp } from '@/src/utils/settleUpStorage';
 import { User } from '@/src/types';
 import Link from 'next/link';
+import QRCodeModal from '@/src/components/QRCodeModal';
 
 export default function Friends() {
-  const { user, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
   const [friends, setFriends] = useState<User[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
@@ -24,6 +25,7 @@ export default function Friends() {
   const [owedFrom, setOwedFrom] = useState<{ [userId: string]: number }>({});
   const [settleUpData, setSettleUpData] = useState<{ lastSettleUpAt: number; friendIds: string[]; groupIds: string[] } | null>(null);
   const [showSettledUp, setShowSettledUp] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -32,6 +34,18 @@ export default function Friends() {
     }
     if (user) {
       loadFriends();
+
+      // Check for invite_id in URL
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const inviteId = params.get('invite_id');
+        if (inviteId) {
+          setFriendId(inviteId);
+          setShowAddModal(true);
+          // Clean up URL
+          window.history.replaceState({}, '', '/friends');
+        }
+      }
     }
   }, [user, loading, router]);
 
@@ -142,6 +156,19 @@ export default function Friends() {
             {/* Right: Add Friend Button */}
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setShowQRModal(true)}
+                className="w-10 h-10 flex items-center justify-center bg-white text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+                title="Show QR Code"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4h-4v-2h4v-4h6v4zM5 8h4V4H5v4zm0 12h4v-4H5v4zm10-8h4V8h-4v4z" />
+                  <rect x="5" y="5" width="2" height="2" fill="currentColor" stroke="none" />
+                  <rect x="15" y="15" width="2" height="2" fill="currentColor" stroke="none" />
+                  <rect x="5" y="15" width="2" height="2" fill="currentColor" stroke="none" />
+                  <rect x="15" y="5" width="2" height="2" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all active:scale-95"
                 title="Add Friend"
@@ -154,6 +181,15 @@ export default function Friends() {
           </div>
         </div>
       </header>
+
+      {/* QR Code Modal */}
+      {showQRModal && userData && (
+        <QRCodeModal
+          uniqueId={userData.uniqueId}
+          displayName={userData.displayName}
+          onClose={() => setShowQRModal(false)}
+        />
+      )}
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 

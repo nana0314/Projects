@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import {
@@ -21,6 +21,7 @@ import {
 } from '@/src/utils/expenses';
 import { Group, User, Expense, ExpenseCategory } from '@/src/types';
 import { format } from 'date-fns';
+import CategoryBadge from '@/src/components/CategoryBadge';
 
 export default function GroupDetails() {
   const { user, userData, loading: authLoading } = useAuth();
@@ -73,6 +74,8 @@ export default function GroupDetails() {
   const [friends, setFriends] = useState<User[]>([]);
   const [selectedFriendsToInvite, setSelectedFriendsToInvite] = useState<Set<string>>(new Set());
   const [loadingFriends, setLoadingFriends] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -351,6 +354,56 @@ export default function GroupDetails() {
     });
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user || !groupId || !e.target.files?.[0]) return;
+
+    // Only creator can upload
+    if (group?.createdBy !== user.uid) {
+      setError('Only the group creator can update the picture');
+      return;
+    }
+
+    const file = e.target.files[0];
+
+    // Validate size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // 1. Upload picture
+      const photoURL = await uploadGroupPicture(groupId, file);
+
+      // 2. Update group in Firestore
+      await updateGroup(groupId, { photoURL });
+
+      setSuccess('Group picture updated successfully!');
+
+      // 3. Refresh group data
+      await loadGroupData();
+    } catch (err: any) {
+      console.error('Error uploading group Picture:', err);
+      setError(err.message || 'Failed to upload group picture');
+    } finally {
+      setUploading(false);
+      // Reset input
+      if (fileRef.current) {
+        fileRef.current.value = '';
+      }
+    }
+  };
+
   const handleInviteMembers = async () => {
     if (!user || !groupId || selectedFriendsToInvite.size === 0) return;
 
@@ -423,19 +476,54 @@ export default function GroupDetails() {
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
-              {group.photoURL ? (
-                <img
-                  src={group.photoURL}
-                  alt={group.name}
-                  className="w-20 h-20 rounded-lg object-cover"
+              <div className="relative group/image">
+                <button
+                  type="button"
+                  onClick={() => group.createdBy === user?.uid && fileRef.current?.click()}
+                  className={`relative ${group.createdBy === user?.uid ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+                  disabled={uploading || group.createdBy !== user?.uid}
+                  title={group.createdBy === user?.uid ? "Change group picture" : ""}
+                >
+                  {group.photoURL ? (
+                    <img
+                      src={group.photoURL}
+                      alt={group.name}
+                      className="w-20 h-20 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg bg-purple-100 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-purple-600">
+                        {group.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Overlay for creator */}
+                  {group.createdBy === user?.uid && (
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-30 flex items-center justify-center rounded-lg transition-all duration-200">
+                      <div className="opacity-0 group-hover/image:opacity-100 bg-white/20 p-1 rounded-full backdrop-blur-sm">
+                        <svg className="w-5 h-5 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
                 />
-              ) : (
-                <div className="w-20 h-20 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-purple-600">
-                    {group.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">{group.name}</h1>
                 {group.description && (
@@ -623,9 +711,14 @@ export default function GroupDetails() {
                               <p className="text-sm font-medium text-gray-900 truncate">
                                 {payerName} paid
                               </p>
-                              <p className="text-sm text-gray-500 truncate">
-                                {expense.description || expense.category}
-                              </p>
+                              <div className="mt-1">
+                                <CategoryBadge category={expense.category} />
+                              </div>
+                              {expense.description && (
+                                <p className="text-xs text-gray-500 truncate mt-0.5">
+                                  {expense.description}
+                                </p>
+                              )}
                             </div>
                             <span className="text-lg font-bold text-gray-900 flex-shrink-0">
                               ${expense.amount.toFixed(2)}
@@ -727,6 +820,11 @@ export default function GroupDetails() {
                     <option value="Groceries">Groceries</option>
                     <option value="Entertainment">Entertainment</option>
                     <option value="Beverage">Beverage</option>
+                    <option value="Transportation">Transportation</option>
+                    <option value="Utilities">Utilities</option>
+                    <option value="Shopping">Shopping</option>
+                    <option value="Travel">Travel</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
 

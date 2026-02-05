@@ -9,6 +9,7 @@ import { getUserExpenses, deleteExpense } from '@/src/utils/expenses';
 import { Expense, User, ExpenseCategory, Group } from '@/src/types';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import CategoryBadge from '@/src/components/CategoryBadge';
 
 export default function RecentActivity() {
   const { user, userData, loading } = useAuth();
@@ -209,7 +210,18 @@ export default function RecentActivity() {
                 className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All</option>
-                {(['Food', 'Rental', 'Groceries', 'Entertainment', 'Beverage'] as ExpenseCategory[]).map((category) => (
+                {[
+                  'Food',
+                  'Rental',
+                  'Groceries',
+                  'Entertainment',
+                  'Beverage',
+                  'Transportation',
+                  'Utilities',
+                  'Shopping',
+                  'Travel',
+                  'Other'
+                ].map((category) => (
                   <option key={category} value={category}>
                     {category}
                   </option>
@@ -292,9 +304,14 @@ export default function RecentActivity() {
                                 <><span className="text-gray-900"> in </span><span className="text-green-600">{getGroupName(expense.groupId)}</span></>
                               )}
                             </p>
-                            <p className="text-sm text-gray-500 truncate">
-                              {expense.description || expense.category}
-                            </p>
+                            <div className="mt-1">
+                              <CategoryBadge category={expense.category} />
+                            </div>
+                            {expense.description && (
+                              <p className="text-xs text-gray-500 truncate mt-0.5">
+                                {expense.description}
+                              </p>
+                            )}
                           </div>
                           <span className="text-lg font-bold text-gray-900 flex-shrink-0">
                             ${expense.amount.toFixed(2)}

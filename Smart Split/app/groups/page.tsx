@@ -146,7 +146,7 @@ export default function Groups() {
     const confirmMessage = isCreator
       ? 'Are you sure you want to delete this group? This will remove the group and all its expenses. This action cannot be undone.'
       : 'Are you sure you want to leave this group?';
-    
+
     if (!confirm(confirmMessage)) return;
 
     try {
@@ -222,124 +222,179 @@ export default function Groups() {
               No groups with expenses yet. Use Join or + above to create or join a group and add expenses.
             </div>
           ) : (
-            <div className="p-6 pt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeGroups.map((group) => {
-              const net = groupNetBalances[group.id] ?? 0;
-              return (
-                <div key={group.id} className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-800">{group.name}</h2>
-                    <button
-                      onClick={() => handleLeaveGroup(group.id)}
-                      className="text-sm text-red-600 hover:text-red-700 active:scale-95 transition-transform"
-                      title={group.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
-                    >
-                      {group.createdBy === user?.uid ? 'Delete' : 'Leave'}
-                    </button>
-                  </div>
-                  {group.description && (
-                    <p className="text-gray-600 mb-4">{group.description}</p>
-                  )}
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                    <span>{group.members.length} member{group.members.length !== 1 ? 's' : ''}</span>
-                    <Link
-                      href={`/groups/details?id=${group.id}`}
-                      className="text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      View Details →
-                    </Link>
-                  </div>
-                  {net > 0 && (
-                    <p className="text-sm text-green-600 font-medium">
-                      You&apos;re owed ${net.toFixed(2)}
-                    </p>
-                  )}
-                  {net < 0 && (
-                    <p className="text-sm text-red-600 font-medium">
-                      You owe ${Math.abs(net).toFixed(2)}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-            {hideSettled && settledGroups.length > 0 && !showSettledUp && (
-              <div className="md:col-span-2 lg:col-span-3">
-                <button
-                  type="button"
-                  onClick={() => setShowSettledUp(true)}
-                  className="w-full p-4 rounded-lg border-2 border-dashed border-gray-300 text-green-600 hover:border-green-400 hover:bg-green-50/50 text-sm font-medium"
-                >
-                  Show {settledGroups.length} settled-up group{settledGroups.length !== 1 ? 's' : ''}
-                </button>
-              </div>
-            )}
-            {hideSettled && settledGroups.length > 0 && showSettledUp && (
-              <>
-                <div className="md:col-span-2 lg:col-span-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowSettledUp(false)}
-                    className="w-full p-4 rounded-lg border-2 border-dashed border-gray-300 text-green-600 hover:border-green-400 hover:bg-green-50/50 text-sm font-medium"
-                  >
-                    Hide {settledGroups.length} settled-up group{settledGroups.length !== 1 ? 's' : ''}
-                  </button>
-                </div>
-                {settledGroups.map((group) => (
-                  <div key={group.id} className="bg-gray-50 rounded-lg shadow p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <h2 className="text-xl font-semibold text-gray-800">{group.name}</h2>
+            <div className="divide-y divide-gray-200">
+              {activeGroups.map((group) => {
+                const net = groupNetBalances[group.id] ?? 0;
+                return (
+                  <div key={group.id} className="p-6 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {group.photoURL ? (
+                        <img
+                          src={group.photoURL}
+                          alt={group.name}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                          <span className="text-xl font-bold text-purple-600">
+                            {group.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                          {group.name}
+                          <Link
+                            href={`/groups/details?id=${group.id}`}
+                            className="text-xs font-normal text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full"
+                          >
+                            View
+                          </Link>
+                        </h2>
+                        {group.description && (
+                          <p className="text-sm text-gray-500 truncate max-w-xs">{group.description}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {group.members.length} member{group.members.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        {net > 0 && (
+                          <span className="text-sm text-green-600 font-medium block">
+                            You're owed ${net.toFixed(2)}
+                          </span>
+                        )}
+                        {net < 0 && (
+                          <span className="text-sm text-red-600 font-medium block">
+                            You owe ${Math.abs(net).toFixed(2)}
+                          </span>
+                        )}
+                        {Math.abs(net) < 0.01 && (
+                          <span className="text-sm text-gray-400 block">
+                            Settled up
+                          </span>
+                        )}
+                      </div>
+
                       <button
                         onClick={() => handleLeaveGroup(group.id)}
-                        className="text-sm text-red-600 hover:text-red-700"
+                        className="text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition-colors"
                         title={group.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
                       >
                         {group.createdBy === user?.uid ? 'Delete' : 'Leave'}
                       </button>
                     </div>
-                    {group.description && (
-                      <p className="text-gray-600 mb-4">{group.description}</p>
-                    )}
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>{group.members.length} member{group.members.length !== 1 ? 's' : ''} · Settled up</span>
-                      <Link
-                        href={`/groups/details?id=${group.id}`}
-                        className="text-blue-600 hover:text-blue-700 font-medium"
+                  </div>
+                );
+              })}
+
+              {hideSettled && settledGroups.length > 0 && !showSettledUp && (
+                <button
+                  type="button"
+                  onClick={() => setShowSettledUp(true)}
+                  className="w-full p-4 text-left text-sm text-green-600 hover:bg-gray-50 font-medium"
+                >
+                  Show {settledGroups.length} settled-up group{settledGroups.length !== 1 ? 's' : ''}
+                </button>
+              )}
+
+              {hideSettled && settledGroups.length > 0 && showSettledUp && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowSettledUp(false)}
+                    className="w-full p-4 text-left text-sm text-green-600 hover:bg-gray-50 font-medium border-t border-gray-200"
+                  >
+                    Hide {settledGroups.length} settled-up group{settledGroups.length !== 1 ? 's' : ''}
+                  </button>
+                  {settledGroups.map((group) => (
+                    <div key={group.id} className="p-6 flex items-center justify-between bg-gray-50/50">
+                      <div className="flex items-center gap-4">
+                        {group.photoURL ? (
+                          <img
+                            src={group.photoURL}
+                            alt={group.name}
+                            className="w-12 h-12 rounded-lg object-cover grayscale opacity-75"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
+                            <span className="text-xl font-bold text-gray-400">
+                              {group.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-600 flex items-center gap-2">
+                            {group.name}
+                            <Link
+                              href={`/groups/details?id=${group.id}`}
+                              className="text-xs font-normal text-gray-500 hover:text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full"
+                            >
+                              View
+                            </Link>
+                          </h2>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {group.members.length} member{group.members.length !== 1 ? 's' : ''} · Settled up
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleLeaveGroup(group.id)}
+                        className="text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition-colors"
+                        title={group.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
                       >
-                        View Details →
-                      </Link>
+                        {group.createdBy === user?.uid ? 'Delete' : 'Leave'}
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {!hideSettled && settledGroups.map((group) => (
+                <div key={group.id} className="p-6 flex items-center justify-between bg-gray-50/50">
+                  <div className="flex items-center gap-4">
+                    {group.photoURL ? (
+                      <img
+                        src={group.photoURL}
+                        alt={group.name}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
+                        <span className="text-xl font-bold text-gray-400">
+                          {group.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-600 flex items-center gap-2">
+                        {group.name}
+                        <Link
+                          href={`/groups/details?id=${group.id}`}
+                          className="text-xs font-normal text-gray-500 hover:text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full"
+                        >
+                          View
+                        </Link>
+                      </h2>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {group.members.length} member{group.members.length !== 1 ? 's' : ''} · Settled up
+                      </p>
                     </div>
                   </div>
-                ))}
-              </>
-            )}
-            {!hideSettled && settledGroups.map((group) => (
-              <div key={group.id} className="bg-gray-50 rounded-lg shadow p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800">{group.name}</h2>
+
                   <button
                     onClick={() => handleLeaveGroup(group.id)}
-                    className="text-sm text-red-600 hover:text-red-700"
+                    className="text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition-colors"
                     title={group.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
                   >
                     {group.createdBy === user?.uid ? 'Delete' : 'Leave'}
                   </button>
                 </div>
-                {group.description && (
-                  <p className="text-gray-600 mb-4">{group.description}</p>
-                )}
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>{group.members.length} member{group.members.length !== 1 ? 's' : ''} · Settled up</span>
-                  <Link
-                    href={`/groups/details?id=${group.id}`}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    View Details →
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
             </div>
           )}
         </div>
