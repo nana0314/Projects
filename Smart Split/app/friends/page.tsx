@@ -145,8 +145,34 @@ export default function Friends() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between relative">
-            {/* Spacer for layout balance */}
-            <div className="w-10" aria-hidden="true" />
+            {/* Left: Profile Picture */}
+            <Link
+              href="/profile"
+              className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors"
+              title="Profile"
+            >
+              {userData?.photoURL ? (
+                <img
+                  src={userData.photoURL}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <svg
+                  className="w-6 h-6 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
+            </Link>
 
             {/* Center: Smart Split Title */}
             <div className="absolute left-1/2 transform -translate-x-1/2 text-center">

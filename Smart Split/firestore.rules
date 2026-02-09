@@ -16,6 +16,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update, delete: if isOwner(userId);
+      
+      // Allow access to settings subcollection (e.g. budget)
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
+      }
     }
     
     // Friend Requests collection - stores pending requests

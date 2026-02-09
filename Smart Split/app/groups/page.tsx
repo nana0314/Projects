@@ -15,7 +15,7 @@ import { Group } from '@/src/types';
 import Link from 'next/link';
 
 export default function Groups() {
-  const { user, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
@@ -179,7 +179,34 @@ export default function Groups() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between relative">
-            <div className="w-14" aria-hidden="true" />
+            {/* Left: Profile Picture */}
+            <Link
+              href="/profile"
+              className="w-10 h-10 flex items-center justify-center rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors"
+              title="Profile"
+            >
+              {userData?.photoURL ? (
+                <img
+                  src={userData.photoURL}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <svg
+                  className="w-6 h-6 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
+            </Link>
             <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
               <h1 className="text-xl font-semibold text-gray-800">Groups</h1>
             </div>
@@ -226,7 +253,11 @@ export default function Groups() {
               {activeGroups.map((group) => {
                 const net = groupNetBalances[group.id] ?? 0;
                 return (
-                  <div key={group.id} className="p-6 flex items-center justify-between">
+                  <Link
+                    key={group.id}
+                    href={`/groups/details?id=${group.id}`}
+                    className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     <div className="flex items-center gap-4">
                       {group.photoURL ? (
                         <img
@@ -242,14 +273,8 @@ export default function Groups() {
                         </div>
                       )}
                       <div>
-                        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <h2 className="text-lg font-semibold text-gray-800">
                           {group.name}
-                          <Link
-                            href={`/groups/details?id=${group.id}`}
-                            className="text-xs font-normal text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full"
-                          >
-                            View
-                          </Link>
                         </h2>
                         {group.description && (
                           <p className="text-sm text-gray-500 truncate max-w-xs">{group.description}</p>
@@ -280,14 +305,18 @@ export default function Groups() {
                       </div>
 
                       <button
-                        onClick={() => handleLeaveGroup(group.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleLeaveGroup(group.id);
+                        }}
                         className="text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition-colors"
                         title={group.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
                       >
                         {group.createdBy === user?.uid ? 'Delete' : 'Leave'}
                       </button>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
 
@@ -311,7 +340,11 @@ export default function Groups() {
                     Hide {settledGroups.length} settled-up group{settledGroups.length !== 1 ? 's' : ''}
                   </button>
                   {settledGroups.map((group) => (
-                    <div key={group.id} className="p-6 flex items-center justify-between bg-gray-50/50">
+                    <Link
+                      key={group.id}
+                      href={`/groups/details?id=${group.id}`}
+                      className="p-6 flex items-center justify-between bg-gray-50/50 hover:bg-gray-100/50 transition-colors cursor-pointer"
+                    >
                       <div className="flex items-center gap-4">
                         {group.photoURL ? (
                           <img
@@ -327,14 +360,8 @@ export default function Groups() {
                           </div>
                         )}
                         <div>
-                          <h2 className="text-lg font-semibold text-gray-600 flex items-center gap-2">
+                          <h2 className="text-lg font-semibold text-gray-600">
                             {group.name}
-                            <Link
-                              href={`/groups/details?id=${group.id}`}
-                              className="text-xs font-normal text-gray-500 hover:text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full"
-                            >
-                              View
-                            </Link>
                           </h2>
                           <p className="text-xs text-gray-400 mt-0.5">
                             {group.members.length} member{group.members.length !== 1 ? 's' : ''} · Settled up
@@ -343,19 +370,27 @@ export default function Groups() {
                       </div>
 
                       <button
-                        onClick={() => handleLeaveGroup(group.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleLeaveGroup(group.id);
+                        }}
                         className="text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition-colors"
                         title={group.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
                       >
                         {group.createdBy === user?.uid ? 'Delete' : 'Leave'}
                       </button>
-                    </div>
+                    </Link>
                   ))}
                 </>
               )}
 
               {!hideSettled && settledGroups.map((group) => (
-                <div key={group.id} className="p-6 flex items-center justify-between bg-gray-50/50">
+                <Link
+                  key={group.id}
+                  href={`/groups/details?id=${group.id}`}
+                  className="p-6 flex items-center justify-between bg-gray-50/50 hover:bg-gray-100/50 transition-colors cursor-pointer"
+                >
                   <div className="flex items-center gap-4">
                     {group.photoURL ? (
                       <img
@@ -371,14 +406,8 @@ export default function Groups() {
                       </div>
                     )}
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-600 flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-gray-600">
                         {group.name}
-                        <Link
-                          href={`/groups/details?id=${group.id}`}
-                          className="text-xs font-normal text-gray-500 hover:text-gray-700 bg-gray-200 px-2 py-0.5 rounded-full"
-                        >
-                          View
-                        </Link>
                       </h2>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {group.members.length} member{group.members.length !== 1 ? 's' : ''} · Settled up
@@ -387,13 +416,17 @@ export default function Groups() {
                   </div>
 
                   <button
-                    onClick={() => handleLeaveGroup(group.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleLeaveGroup(group.id);
+                    }}
                     className="text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition-colors"
                     title={group.createdBy === user?.uid ? 'Delete Group' : 'Leave Group'}
                   >
                     {group.createdBy === user?.uid ? 'Delete' : 'Leave'}
                   </button>
-                </div>
+                </Link>
               ))}
             </div>
           )}

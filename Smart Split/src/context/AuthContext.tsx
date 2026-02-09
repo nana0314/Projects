@@ -31,18 +31,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChange(async (firebaseUser) => {
       setUser(firebaseUser);
 
-      if (firebaseUser) {
-        // Create user document if it doesn't exist
-        await createUserDocument(firebaseUser);
+      try {
+        if (firebaseUser) {
+          // Create user document if it doesn't exist
+          await createUserDocument(firebaseUser);
 
-        // Get user data from Firestore
-        const data = await getUserById(firebaseUser.uid);
-        setUserData(data);
-      } else {
-        setUserData(null);
+          // Get user data from Firestore
+          const data = await getUserById(firebaseUser.uid);
+          setUserData(data);
+        } else {
+          setUserData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // Fallback: keep user logged in but maybe without full profile data
+        // or let the UI handle the missing userData
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => unsubscribe();

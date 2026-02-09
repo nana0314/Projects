@@ -4,6 +4,11 @@ import { useEffect } from 'react';
 
 export default function PWARegister() {
   useEffect(() => {
+    // Only register service worker in production
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       // Register service worker
       navigator.serviceWorker
@@ -20,7 +25,7 @@ export default function PWARegister() {
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        
+
         // Show install button or banner
         const installBanner = document.createElement('div');
         installBanner.id = 'install-banner';

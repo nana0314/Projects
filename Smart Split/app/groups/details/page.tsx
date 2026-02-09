@@ -22,6 +22,14 @@ import {
 import { Group, User, Expense, ExpenseCategory } from '@/src/types';
 import { format } from 'date-fns';
 import CategoryBadge from '@/src/components/CategoryBadge';
+import { PeriodSpending, CategoryBreakdown, TrendComparison } from '@/src/types/analytics';
+import {
+  calculateGroupSpendingTrend,
+  calculateGroupCategoryBreakdown,
+  calculateGroupTrendComparison
+} from '@/src/utils/analytics';
+import SpendingTrendChart from '@/src/components/dashboard/SpendingTrendChart';
+import CategoryPieChart from '@/src/components/dashboard/CategoryPieChart';
 
 export default function GroupDetails() {
   const { user, userData, loading: authLoading } = useAuth();
@@ -47,7 +55,13 @@ export default function GroupDetails() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
   const [success, setSuccess] = useState('');
+
+  // Analytics states
+  const [trendData, setTrendData] = useState<PeriodSpending[]>([]);
+  const [comparison, setComparison] = useState<TrendComparison | null>(null);
+  const [categoryData, setCategoryData] = useState<CategoryBreakdown[]>([]);
 
   // Balance states
   const [owedTo, setOwedTo] = useState<{ [userId: string]: number }>({});
@@ -136,6 +150,15 @@ export default function GroupDetails() {
       setGroup(groupData);
       setMembers(groupMembers);
       setExpenses(groupExpenses);
+
+      // Calculate analytics
+      const trend = calculateGroupSpendingTrend(groupExpenses);
+      const comp = calculateGroupTrendComparison(groupExpenses);
+      const categories = calculateGroupCategoryBreakdown(groupExpenses);
+
+      setTrendData(trend);
+      setComparison(comp);
+      setCategoryData(categories);
     } catch (err: any) {
       console.error('Error loading group data:', err);
       setError(err.message || 'Failed to load group data');
@@ -551,6 +574,16 @@ export default function GroupDetails() {
             </p>
           </div>
         </div>
+
+        {/* Analytics Section */}
+        {expenses.length > 0 && (
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {comparison && (
+              <SpendingTrendChart trendData={trendData} comparison={comparison} compact={false} />
+            )}
+            <CategoryPieChart data={categoryData} />
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">

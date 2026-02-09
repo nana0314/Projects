@@ -1,18 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/src/context/AuthContext';
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { user, userData } = useAuth(); // ADD: Get userData as well
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (pathname === '/') {
     return null;
@@ -22,35 +14,9 @@ export default function BottomNav() {
   const isFriendsActive = pathname === '/friends' || pathname?.startsWith('/friends/');
   const isGroupsActive = pathname === '/groups' || pathname?.startsWith('/groups/');
   const isActivityActive = pathname === '/activity' || pathname?.startsWith('/activity/');
-  const isAccountActive = pathname === '/profile' || pathname?.startsWith('/profile/');
+  const isDashboardActive = pathname === '/dashboard' || pathname?.startsWith('/dashboard/');
 
-  // FIXED: Prefer userData.photoURL (Firestore) over user.photoURL (Auth)
-  // This ensures immediate updates after profile picture upload
-  const profilePhotoURL = userData?.photoURL || user?.photoURL;
-  const showAccountPhoto = mounted && !!profilePhotoURL;
 
-  const accountIcon = showAccountPhoto ? (
-    <img
-      src={profilePhotoURL!}
-      alt="Account"
-      className="w-6 h-6 mb-0.5 rounded-full object-cover"
-    />
-  ) : (
-    <svg
-      className="w-6 h-6 mb-0.5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-      />
-    </svg>
-  );
 
   return (
     <nav
@@ -78,6 +44,32 @@ export default function BottomNav() {
           overflow: 'visible',
         }}
       >
+        {/* Dashboard Button */}
+        <div
+          className={`flex-1 flex justify-center items-center h-full min-h-[44px] ${isDashboardActive ? 'nav-btn-blink' : ''}`}
+        >
+          <Link
+            href="/dashboard"
+            className={`flex flex-col items-center justify-center w-full h-full transition-all rounded-lg py-1 ${isDashboardActive ? 'text-gray-900' : 'text-gray-500'}`}
+          >
+            <svg
+              className="w-6 h-6 mb-0.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+              />
+            </svg>
+            <span className="text-xs font-medium">Dashboard</span>
+          </Link>
+        </div>
+
         {/* Friends Button */}
         <div
           className={`flex-1 flex justify-center items-center h-full min-h-[44px] ${isFriendsActive ? 'nav-btn-blink' : ''}`}
@@ -153,19 +145,6 @@ export default function BottomNav() {
               />
             </svg>
             <span className="text-xs font-medium">Activity</span>
-          </Link>
-        </div>
-
-        {/* Account Button */}
-        <div
-          className={`flex-1 flex justify-center items-center h-full min-h-[44px] ${isAccountActive ? 'nav-btn-blink' : ''}`}
-        >
-          <Link
-            href="/profile"
-            className={`flex flex-col items-center justify-center w-full h-full transition-all rounded-lg py-1 ${isAccountActive ? 'text-gray-900' : 'text-gray-500'}`}
-          >
-            {accountIcon}
-            <span className="text-xs font-medium">Account</span>
           </Link>
         </div>
       </div>
