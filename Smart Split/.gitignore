@@ -41,3 +41,7 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 *.cache
+
+# firebase functions
+functions/lib/
+functions/node_modules/
