@@ -22,6 +22,7 @@ import {
 import { Group, User, Expense, ExpenseCategory } from '@/src/types';
 import { format } from 'date-fns';
 import CategoryBadge from '@/src/components/CategoryBadge';
+import BlockReportMenu from '@/src/components/BlockReportMenu';
 import { PeriodSpending, CategoryBreakdown, TrendComparison } from '@/src/types/analytics';
 import {
   calculateGroupSpendingTrend,
@@ -633,6 +634,16 @@ export default function GroupDetails() {
                       >
                         {removingMember === member.uid ? '...' : 'Remove'}
                       </button>
+                    )}
+                    {/* Block/Report menu for non-self members */}
+                    {member.uid !== user?.uid && (
+                      <BlockReportMenu
+                        currentUserId={user!.uid}
+                        targetUserId={member.uid}
+                        targetName={member.displayName}
+                        isBlocked={false}
+                        onBlockChange={() => loadGroupData()}
+                      />
                     )}
                   </div>
                 ))}

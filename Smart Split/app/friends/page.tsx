@@ -6,9 +6,11 @@ import { useAuth } from '@/src/context/AuthContext';
 import { addFriendByUniqueId, getUserFriends, getPendingFriendRequests, acceptFriendRequest, declineFriendRequest } from '@/src/utils/friends';
 import { calculateUserBalances, getUserExpenses } from '@/src/utils/expenses';
 import { getSettleUpData, shouldHideSettledUp } from '@/src/utils/settleUpStorage';
+import { getBlockedUsers } from '@/src/utils/moderation';
 import { User } from '@/src/types';
 import Link from 'next/link';
 import QRCodeModal from '@/src/components/QRCodeModal';
+import BlockReportMenu from '@/src/components/BlockReportMenu';
 
 export default function Friends() {
   const { user, userData, loading } = useAuth();
@@ -26,6 +28,7 @@ export default function Friends() {
   const [settleUpData, setSettleUpData] = useState<{ lastSettleUpAt: number; friendIds: string[]; groupIds: string[] } | null>(null);
   const [showSettledUp, setShowSettledUp] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -53,17 +56,19 @@ export default function Friends() {
     if (!user) return;
     try {
       setLoadingFriends(true);
-      const [userFriends, balances, expenses, requests] = await Promise.all([
+      const [userFriends, balances, expenses, requests, blocked] = await Promise.all([
         getUserFriends(user.uid),
         calculateUserBalances(user.uid),
         getUserExpenses(user.uid),
         getPendingFriendRequests(user.uid),
+        getBlockedUsers(user.uid),
       ]);
       setFriends(userFriends);
       setFriendRequests(requests);
       setOwedTo(balances.owedTo);
       setOwedFrom(balances.owedFrom);
       setSettleUpData(getSettleUpData(user.uid));
+      setBlockedIds(new Set(blocked));
     } catch (err: unknown) {
       const e = err as { message?: string };
       setError(e.message || 'Failed to load friends');
@@ -124,12 +129,16 @@ export default function Friends() {
   const hideSettled = shouldHideSettledUp(settleUpData);
   // Active friends = those with balance > 0 (including previously settled-up friends who got new expenses)
   // Settled-up = in settle-up data but balance = 0. Only hide them after 7 days.
-  const involved = friends.filter(
-    (f) => activeIds.has(f.uid) || settledIds.has(f.uid)
-  );
-  const activeFriends = involved.filter((f) => activeIds.has(f.uid));
-  const settledFriends = involved.filter(
+  // Filter out blocked users from friends
+  const visibleFriends = friends.filter(f => !blockedIds.has(f.uid));
+
+  const activeFriends = visibleFriends.filter((f) => activeIds.has(f.uid));
+  const settledFriends = visibleFriends.filter(
     (f) => settledIds.has(f.uid) && !activeIds.has(f.uid)
+  );
+  // Show remaining friends (no balance, not in settle-up data) with "settled up" label
+  const otherFriends = visibleFriends.filter(
+    (f) => !activeIds.has(f.uid) && !settledIds.has(f.uid)
   );
 
   if (loading || !user) {
@@ -285,9 +294,9 @@ export default function Friends() {
             <div className="p-8 text-center text-gray-500">Loading friends...</div>
           ) : (
             <>
-              {activeFriends.length === 0 && settledFriends.length === 0 ? (
+              {visibleFriends.length === 0 ? (
                 <div className="p-8 text-center text-gray-500">
-                  No friends with expenses yet. Add friends and add expenses to see them here.
+                  No friends yet. Add friends to see them here.
                 </div>
               ) : (
                 <div className="divide-y divide-gray-200">
@@ -329,6 +338,13 @@ export default function Friends() {
                         {netBalance === 0 && (
                           <span className="text-sm text-gray-400">settled up</span>
                         )}
+                        <BlockReportMenu
+                          currentUserId={user!.uid}
+                          targetUserId={friend.uid}
+                          targetName={friend.displayName}
+                          isBlocked={blockedIds.has(friend.uid)}
+                          onBlockChange={() => loadFriends()}
+                        />
                       </div>
                     );
                   })}
@@ -398,6 +414,38 @@ export default function Friends() {
                         </div>
                       </div>
                       <span className="text-sm text-gray-400">settled up</span>
+                    </div>
+                  ))}
+                  {/* Other friends (no balance, no settle-up data) */}
+                  {otherFriends.map((friend) => (
+                    <div key={friend.uid} className="p-6 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {friend.photoURL ? (
+                          <img
+                            src={friend.photoURL}
+                            alt={friend.displayName}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-lg text-gray-400">
+                              {friend.displayName.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-semibold text-gray-800">{friend.displayName}</p>
+                          <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
+                        </div>
+                      </div>
+                      <span className="text-sm text-gray-400">settled up</span>
+                      <BlockReportMenu
+                        currentUserId={user!.uid}
+                        targetUserId={friend.uid}
+                        targetName={friend.displayName}
+                        isBlocked={blockedIds.has(friend.uid)}
+                        onBlockChange={() => loadFriends()}
+                      />
                     </div>
                   ))}
                 </div>

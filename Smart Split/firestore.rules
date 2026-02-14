@@ -21,6 +21,23 @@ service cloud.firestore {
       match /settings/{settingId} {
         allow read, write: if isOwner(userId);
       }
+
+      // Blocked users subcollection — owner-only access
+      match /blocked_users/{blockedId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // AI Insights subcollection — owner can read, Cloud Functions write via admin SDK
+      match /insights/{insightId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+    
+    // Reports collection — users can create reports, but cannot read/modify them
+    match /reports/{reportId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if false; // Admin-only via Firebase Console
     }
     
     // Friend Requests collection - stores pending requests

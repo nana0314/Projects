@@ -6,6 +6,7 @@ export interface User {
   displayName: string;
   photoURL?: string;
   uniqueId: string; // Random generated unique ID
+  aiInsightsEnabled?: boolean; // Opt-in for AI-powered weekly insights
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -59,6 +60,7 @@ export interface Expense {
   splitAmounts?: { [userId: string]: number }; // For custom splits
   groupId?: string; // Optional: if expense is in a group
   description?: string;
+  type?: 'expense' | 'settlement'; // Default: 'expense'. 'settlement' for partial payments
   createdAt: Timestamp;
   createdBy: string;
   settledAt?: Timestamp; // When expense was settled (for history)

@@ -6,11 +6,15 @@ import { useAuth } from '@/src/context/AuthContext';
 import { calculateFriendOnlyBalances, calculateGroupBalances } from '@/src/utils/expenses';
 import { getUserGroups } from '@/src/utils/groups';
 import { getUserById } from '@/src/utils/users';
-import { performSettleUpForFriend, performSettleUpForGroup } from '@/src/utils/settleUpStorage';
+import { performSettleUpForFriend, performSettleUpForGroup, performPartialSettleUp } from '@/src/utils/settleUpStorage';
 
 type SettleTarget = { type: 'friend'; id: string; name: string; photoURL?: string; net: number } | { type: 'group'; id: string; name: string; photoURL?: string; net: number };
 
-export default function FloatingSettleUp() {
+interface FloatingSettleUpProps {
+  context?: 'dashboard' | 'friends' | 'groups' | 'activity';
+}
+
+export default function FloatingSettleUp({ context }: FloatingSettleUpProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -23,6 +27,10 @@ export default function FloatingSettleUp() {
   // New state for inline confirmation and settled status
   const [confirmTarget, setConfirmTarget] = useState<string | null>(null);
   const [settledIds, setSettledIds] = useState<Set<string>>(new Set());
+
+  // Partial settlement state
+  const [partialTarget, setPartialTarget] = useState<string | null>(null);
+  const [partialAmount, setPartialAmount] = useState('');
 
   useEffect(() => {
     if (showModal && user) {
@@ -108,6 +116,37 @@ export default function FloatingSettleUp() {
 
     } catch (err: any) {
       setError(err.message || 'Failed to settle up');
+    } finally {
+      setSettling(false);
+    }
+  };
+
+  const handlePartialSettle = async (t: SettleTarget) => {
+    if (!user) return;
+    const amount = parseFloat(partialAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+    setSettling(true);
+    setError('');
+    try {
+      await performPartialSettleUp(
+        user.uid,
+        t.id,
+        amount,
+        user.displayName || 'You',
+        t.name,
+        t.type === 'group' ? t.id : undefined
+      );
+      setPartialTarget(null);
+      setPartialAmount('');
+      setSuccess(`Partial payment of $${amount.toFixed(2)} recorded`);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to record partial payment');
     } finally {
       setSettling(false);
     }
@@ -225,14 +264,56 @@ export default function FloatingSettleUp() {
                               Confirm
                             </button>
                           </div>
+                        ) : partialTarget === `${t.type}-${t.id}` ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max={Math.abs(t.net)}
+                                value={partialAmount}
+                                onChange={(e) => setPartialAmount(e.target.value)}
+                                placeholder="Amount"
+                                className="w-24 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                autoFocus
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => { setPartialTarget(null); setPartialAmount(''); }}
+                                className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                              >
+                                ✕
+                              </button>
+                              <button
+                                onClick={() => handlePartialSettle(t)}
+                                disabled={settling || !partialAmount}
+                                className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                Pay
+                              </button>
+                            </div>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => setConfirmTarget(t.id)}
-                            disabled={settling}
-                            className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-transform"
-                          >
-                            Settle
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setPartialTarget(`${t.type}-${t.id}`)}
+                              disabled={settling}
+                              className="px-2 py-1.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 active:scale-95 transition-transform"
+                              title="Record a partial payment"
+                            >
+                              Partial
+                            </button>
+                            <button
+                              onClick={() => setConfirmTarget(t.id)}
+                              disabled={settling}
+                              className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 active:scale-95 transition-transform"
+                            >
+                              Settle
+                            </button>
+                          </div>
                         )}
                       </li>
                     );

@@ -22,9 +22,10 @@ export default function AddExpensePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Selection: exactly one friend OR one group
+  // Selection: exactly one friend OR one group OR personal
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [isPersonal, setIsPersonal] = useState(false);
 
   // Form
   const [description, setDescription] = useState('');
@@ -114,6 +115,7 @@ export default function AddExpensePage() {
   const selectFriend = (f: User) => {
     setSelectedFriend(f);
     setSelectedGroup(null);
+    setIsPersonal(false);
     setFriendOption('you_paid_equal');
     setFriendPayerId(user?.uid || '');
     setFriendCustomAmounts({ you: '', friend: '' });
@@ -122,11 +124,19 @@ export default function AddExpensePage() {
   const selectGroup = (g: Group) => {
     setSelectedGroup(g);
     setSelectedFriend(null);
+    setIsPersonal(false);
+  };
+
+  const selectPersonal = () => {
+    setIsPersonal(true);
+    setSelectedFriend(null);
+    setSelectedGroup(null);
   };
 
   const clearSelection = () => {
     setSelectedFriend(null);
     setSelectedGroup(null);
+    setIsPersonal(false);
     setFriendOption('you_paid_equal');
     setFriendPayerId(user?.uid || '');
     setFriendCustomAmounts({ you: '', friend: '' });
@@ -161,13 +171,15 @@ export default function AddExpensePage() {
 
   const canSubmit =
     isValidAmount &&
-    (selectedFriend || selectedGroup) &&
-    (selectedFriend
-      ? (friendOption !== 'custom' || (friendCustomValid && friendPayerId))
-      : selectedGroup &&
-      participants.length >= 2 &&
-      payerId &&
-      (effectiveSplitType === 'equal' || (showCustom && customValid)));
+    (selectedFriend || selectedGroup || isPersonal) &&
+    (isPersonal
+      ? true
+      : selectedFriend
+        ? (friendOption !== 'custom' || (friendCustomValid && friendPayerId))
+        : selectedGroup &&
+        participants.length >= 2 &&
+        payerId &&
+        (effectiveSplitType === 'equal' || (showCustom && customValid)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +194,25 @@ export default function AddExpensePage() {
       const date = new Date();
       const createdBy = user.uid;
 
-      if (selectedFriend) {
+      if (isPersonal) {
+        // Personal expense — no split
+        const participantNames: { [uid: string]: string } = {
+          [user.uid]: user.displayName || 'You',
+        };
+        await createExpense(
+          expenseAmount,
+          category,
+          date,
+          user.uid,
+          [user.uid],
+          'equal',
+          createdBy,
+          undefined,
+          description.trim() || undefined,
+          undefined,
+          participantNames
+        );
+      } else if (selectedFriend) {
         const friend = selectedFriend;
         const participantsList = [user.uid, friend.uid];
         let payerId: string;
@@ -316,13 +346,28 @@ export default function AddExpensePage() {
           </div>
         )}
 
-        {/* Step 1: Choose friend or group */}
+        {/* Step 1: Choose friend, group, or personal */}
         <section>
-          <h2 className="text-sm font-medium text-gray-700 mb-2">Choose one friend or one group</h2>
+          <h2 className="text-sm font-medium text-gray-700 mb-2">Who is this expense for?</h2>
           {loading ? (
             <p className="text-gray-500 text-sm">Loading…</p>
           ) : (
             <div className="space-y-4">
+              {/* Just Me (Personal) */}
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Personal</p>
+                <button
+                  type="button"
+                  onClick={selectPersonal}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${isPersonal
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                >
+                  🧑 Just Me
+                </button>
+              </div>
+
               {friends.length > 0 && (
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Friends</p>
@@ -363,10 +408,10 @@ export default function AddExpensePage() {
                   </div>
                 </div>
               )}
-              {!loading && friends.length === 0 && groups.length === 0 && (
-                <p className="text-gray-500 text-sm">Add friends or groups first.</p>
+              {!loading && friends.length === 0 && groups.length === 0 && !isPersonal && (
+                <p className="text-gray-500 text-sm">Add friends or groups first, or use &quot;Just Me&quot; for personal expenses.</p>
               )}
-              {(selectedFriend || selectedGroup) && (
+              {(selectedFriend || selectedGroup || isPersonal) && (
                 <button
                   type="button"
                   onClick={clearSelection}
@@ -379,7 +424,7 @@ export default function AddExpensePage() {
           )}
         </section>
 
-        {!(selectedFriend || selectedGroup) ? null : (
+        {!(selectedFriend || selectedGroup || isPersonal) ? null : (
           <>
             {/* Description (optional) */}
             <section>

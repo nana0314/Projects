@@ -26,6 +26,7 @@ export default function RecentActivity() {
   // Filter and sort states
   const [filterPaidByYou, setFilterPaidByYou] = useState(false);
   const [filterCategory, setFilterCategory] = useState<ExpenseCategory | 'all'>('all');
+  const [filterExpenseType, setFilterExpenseType] = useState<'all' | 'personal' | 'shared'>('all');
   const [sortByDate, setSortByDate] = useState<'newest' | 'oldest'>('newest');
 
   useEffect(() => {
@@ -121,6 +122,13 @@ export default function RecentActivity() {
       filtered = filtered.filter(expense => expense.category === filterCategory);
     }
 
+    // Filter by expense type (personal/shared)
+    if (filterExpenseType === 'personal') {
+      filtered = filtered.filter(expense => expense.participants.length === 1 && expense.participants[0] === user?.uid);
+    } else if (filterExpenseType === 'shared') {
+      filtered = filtered.filter(expense => expense.participants.length > 1);
+    }
+
     // Sort by date first, then by createdAt (time) for expenses on the same date
     filtered.sort((a, b) => {
       const dateA = a.date.toMillis();
@@ -145,7 +153,7 @@ export default function RecentActivity() {
       applyFiltersAndSort(allExpenses);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterPaidByYou, filterCategory, sortByDate, user?.uid, allExpenses.length]);
+  }, [filterPaidByYou, filterCategory, filterExpenseType, sortByDate, user?.uid, allExpenses.length]);
 
   const handleDeleteExpense = async (expenseId: string) => {
     if (!user) return;
@@ -224,7 +232,7 @@ export default function RecentActivity() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <p className="text-gray-600">Your expenses with friends and groups</p>
+          <p className="text-gray-600">Your expenses — personal, with friends, and groups</p>
         </div>
 
         {/* Filters and Sort */}
@@ -240,6 +248,20 @@ export default function RecentActivity() {
               />
               <span className="text-sm font-medium text-gray-700">Paid by You</span>
             </label>
+
+            {/* Expense Type Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Type:</span>
+              <select
+                value={filterExpenseType}
+                onChange={(e) => setFilterExpenseType(e.target.value as 'all' | 'personal' | 'shared')}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All</option>
+                <option value="personal">Personal</option>
+                <option value="shared">Shared</option>
+              </select>
+            </div>
 
             {/* Category Filter */}
             <div className="flex items-center gap-2">
@@ -339,13 +361,20 @@ export default function RecentActivity() {
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">
-                              {payerName} paid
-                              {expense.groupId && (
-                                <><span className="text-gray-900"> in </span><span className="text-green-600">{getGroupName(expense.groupId)}</span></>
-                              )}
+                              {expense.participants.length === 1 && expense.participants[0] === user?.uid
+                                ? 'Personal expense'
+                                : (<>{payerName} paid
+                                  {expense.groupId && (
+                                    <><span className="text-gray-900"> in </span><span className="text-green-600">{getGroupName(expense.groupId)}</span></>
+                                  )}
+                                </>)
+                              }
                             </p>
-                            <div className="mt-1">
+                            <div className="mt-1 flex items-center gap-2">
                               <CategoryBadge category={expense.category} />
+                              {expense.participants.length === 1 && expense.participants[0] === user?.uid && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">Personal</span>
+                              )}
                             </div>
                             {expense.description && (
                               <p className="text-xs text-gray-500 truncate mt-0.5">
@@ -358,43 +387,52 @@ export default function RecentActivity() {
                           </span>
                         </div>
 
-                        {/* Participant avatars row */}
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center">
-                            <span className="text-xs text-gray-500 mr-2">Split with:</span>
-                            <div className="flex -space-x-2">
-                              {participantAvatars.slice(0, maxAvatars).map((p, idx) => (
-                                p.photo ? (
-                                  <img
-                                    key={p.uid}
-                                    src={p.photo}
-                                    alt={p.name}
-                                    title={p.name}
-                                    className="w-6 h-6 rounded-full object-cover border-2 border-white"
-                                  />
-                                ) : (
-                                  <div
-                                    key={p.uid}
-                                    title={p.name}
-                                    className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white"
-                                  >
-                                    <span className="text-xs text-gray-600">
-                                      {p.name.charAt(0).toUpperCase()}
-                                    </span>
+                        {/* Participant avatars row - only for shared expenses */}
+                        {expense.participants.length > 1 && (
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center">
+                              <span className="text-xs text-gray-500 mr-2">Split with:</span>
+                              <div className="flex -space-x-2">
+                                {participantAvatars.slice(0, maxAvatars).map((p, idx) => (
+                                  p.photo ? (
+                                    <img
+                                      key={p.uid}
+                                      src={p.photo}
+                                      alt={p.name}
+                                      title={p.name}
+                                      className="w-6 h-6 rounded-full object-cover border-2 border-white"
+                                    />
+                                  ) : (
+                                    <div
+                                      key={p.uid}
+                                      title={p.name}
+                                      className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white"
+                                    >
+                                      <span className="text-xs text-gray-600">
+                                        {p.name.charAt(0).toUpperCase()}
+                                      </span>
+                                    </div>
+                                  )
+                                ))}
+                                {extraCount > 0 && (
+                                  <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center border-2 border-white">
+                                    <span className="text-xs text-white font-medium">+{extraCount}</span>
                                   </div>
-                                )
-                              ))}
-                              {extraCount > 0 && (
-                                <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center border-2 border-white">
-                                  <span className="text-xs text-white font-medium">+{extraCount}</span>
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </div>
+                            <span className="text-xs text-gray-400">
+                              {format(expense.date.toDate(), 'MMM dd, yyyy')}
+                            </span>
                           </div>
-                          <span className="text-xs text-gray-400">
-                            {format(expense.date.toDate(), 'MMM dd, yyyy')}
-                          </span>
-                        </div>
+                        )}
+                        {expense.participants.length === 1 && (
+                          <div className="flex items-center justify-end mt-2">
+                            <span className="text-xs text-gray-400">
+                              {format(expense.date.toDate(), 'MMM dd, yyyy')}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Delete button */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/src/context/AuthContext';
 import { signInWithGoogle } from '@/src/utils/auth';
 
@@ -112,7 +113,12 @@ export default function Home() {
 
       {/* Terms at bottom */}
       <div className="pb-[max(env(safe-area-inset-bottom),2rem)] text-center text-sm text-gray-500">
-        <p>By signing in, you agree to our Terms of Service</p>
+        <p>
+          By signing in, you agree to our{' '}
+          <Link href="/terms" className="text-blue-600 underline hover:text-blue-800">Terms of Service</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="text-blue-600 underline hover:text-blue-800">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/src/context/AuthContext';
 import { updateUserProfile, uploadProfilePicture } from '@/src/utils/users';
 import { signOut } from '@/src/utils/auth';
@@ -235,6 +236,31 @@ export default function Profile() {
             </button>
           </div>
 
+          {/* Terms & Privacy Links */}
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Legal</h3>
+            <div className="space-y-2">
+              <Link
+                href="/terms"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <span className="text-sm text-gray-700">Terms of Service</span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+              <Link
+                href="/privacy"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <span className="text-sm text-gray-700">Privacy Policy</span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+
           {/* Danger Zone - Delete Account */}
           <div className="mt-8 pt-8 border-t-2 border-red-200">
             <h3 className="text-sm font-semibold text-red-600 uppercase tracking-wide mb-3">Danger Zone</h3>
@@ -295,8 +321,8 @@ export default function Profile() {
                 onClick={handleDeleteAccount}
                 disabled={deleteConfirmText !== 'DELETE' || deleting}
                 className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${deleteConfirmText === 'DELETE' && !deleting
-                    ? 'bg-red-600 text-white hover:bg-red-700 active:scale-95'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-red-600 text-white hover:bg-red-700 active:scale-95'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
               >
                 {deleting ? (

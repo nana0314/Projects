@@ -378,6 +378,47 @@ export const settleUpExpensesForGroup = async (groupId: string): Promise<void> =
 };
 
 /**
+ * Create a settlement expense — records a partial payment between two users.
+ * This creates an expense with type='settlement' that offsets existing balances.
+ */
+export const createSettlementExpense = async (
+  payerId: string,
+  receiverId: string,
+  amount: number,
+  payerName: string,
+  receiverName: string,
+  groupId?: string
+): Promise<string> => {
+  const expensesRef = collection(db, 'expenses');
+  const expenseRef = doc(expensesRef);
+
+  const expenseData: any = {
+    amount,
+    category: 'Other' as ExpenseCategory,
+    date: Timestamp.fromDate(new Date()),
+    payerId,
+    participants: [payerId, receiverId],
+    splitType: 'custom',
+    splitAmounts: { [payerId]: 0, [receiverId]: amount },
+    type: 'settlement',
+    description: `Settlement payment`,
+    participantNames: {
+      [payerId]: payerName,
+      [receiverId]: receiverName,
+    },
+    createdAt: serverTimestamp() as any,
+    createdBy: payerId,
+  };
+
+  if (groupId) {
+    expenseData.groupId = groupId;
+  }
+
+  await setDoc(expenseRef, expenseData);
+  return expenseRef.id;
+};
+
+/**
  * Settle up all expenses for a user (mark all expenses as settled by deleting them)
  */
 export const settleUpExpenses = async (userId: string): Promise<void> => {

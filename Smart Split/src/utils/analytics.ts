@@ -85,6 +85,24 @@ export const formatPeriodLabel = (start: Date, end: Date): string => {
 };
 
 // =============================================================================
+// EXPENSE TYPE FILTER
+// =============================================================================
+
+export type ExpenseTypeFilter = 'all' | 'personal' | 'shared';
+
+/**
+ * Filter expenses by type: personal (single participant) or shared (multiple participants)
+ */
+export const filterExpensesByType = (
+    expenses: Expense[],
+    filter: ExpenseTypeFilter
+): Expense[] => {
+    if (filter === 'all') return expenses;
+    if (filter === 'personal') return expenses.filter(e => e.participants.length === 1);
+    return expenses.filter(e => e.participants.length > 1); // 'shared'
+};
+
+// =============================================================================
 // USER SPENDING TREND
 // =============================================================================
 

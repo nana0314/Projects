@@ -17,6 +17,8 @@ import {
     getBudget,
     setBudget,
     getCurrentPeriod,
+    filterExpensesByType,
+    ExpenseTypeFilter,
 } from '@/src/utils/analytics';
 import { Expense, Group } from '@/src/types';
 import { PeriodSpending, TrendComparison, CategoryBreakdown, MerchantBreakdown, DailyAverageStats } from '@/src/types/analytics';
@@ -28,6 +30,8 @@ import CategoryPieChart from '@/src/components/dashboard/CategoryPieChart';
 import TopMerchantsPieChart from '@/src/components/dashboard/TopMerchantsPieChart';
 import DailyAverageCard from '@/src/components/dashboard/DailyAverageCard';
 import ActiveGroupsChart from '@/src/components/dashboard/ActiveGroupsChart';
+import InsightsCard from '@/src/components/dashboard/InsightsCard';
+import OutstandingBalances from '@/src/components/dashboard/OutstandingBalances';
 
 interface GroupWithAnalytics {
     group: Group;
@@ -53,6 +57,7 @@ export default function Dashboard() {
     const [merchantData, setMerchantData] = useState<MerchantBreakdown[]>([]);
     const [dailyStats, setDailyStats] = useState<DailyAverageStats | null>(null);
     const [groupsWithAnalytics, setGroupsWithAnalytics] = useState<GroupWithAnalytics[]>([]);
+    const [expenseFilter, setExpenseFilter] = useState<ExpenseTypeFilter>('all');
 
     // Auth redirect
     useEffect(() => {
@@ -78,12 +83,13 @@ export default function Dashboard() {
             setGroups(userGroups);
             setBudgetState(userBudget);
 
-            // Calculate analytics
-            const trend = calculateUserSpendingTrend(userExpenses, user.uid);
-            const trendComp = calculateTrendComparison(userExpenses, user.uid);
-            const categories = calculateCategoryBreakdown(userExpenses, user.uid);
-            const merchants = calculateMerchantBreakdown(userExpenses, user.uid);
-            const daily = calculateDailyAverage(userExpenses, user.uid);
+            // Calculate analytics using filtered expenses
+            const filteredExpenses = filterExpensesByType(userExpenses, expenseFilter);
+            const trend = calculateUserSpendingTrend(filteredExpenses, user.uid);
+            const trendComp = calculateTrendComparison(filteredExpenses, user.uid);
+            const categories = calculateCategoryBreakdown(filteredExpenses, user.uid);
+            const merchants = calculateMerchantBreakdown(filteredExpenses, user.uid);
+            const daily = calculateDailyAverage(filteredExpenses, user.uid);
 
             setTrendData(trend);
             setComparison(trendComp);
@@ -120,7 +126,25 @@ export default function Dashboard() {
         } finally {
             setDataLoading(false);
         }
-    }, [user]);
+    }, [user, expenseFilter]);
+
+    // Recalculate when filter changes
+    useEffect(() => {
+        if (user && expenses.length > 0) {
+            const filteredExpenses = filterExpensesByType(expenses, expenseFilter);
+            const trend = calculateUserSpendingTrend(filteredExpenses, user.uid);
+            const trendComp = calculateTrendComparison(filteredExpenses, user.uid);
+            const categories = calculateCategoryBreakdown(filteredExpenses, user.uid);
+            const merchants = calculateMerchantBreakdown(filteredExpenses, user.uid);
+            const daily = calculateDailyAverage(filteredExpenses, user.uid);
+
+            setTrendData(trend);
+            setComparison(trendComp);
+            setCategoryData(categories);
+            setMerchantData(merchants);
+            setDailyStats(daily);
+        }
+    }, [expenseFilter, expenses, user]);
 
     useEffect(() => {
         if (user) {
@@ -242,6 +266,28 @@ export default function Dashboard() {
                     </div>
                 ) : (
                     <div className="space-y-4">
+                        {/* AI Insights Card */}
+                        <InsightsCard />
+
+                        {/* Outstanding Balances */}
+                        <OutstandingBalances />
+
+                        {/* Expense Type Filter */}
+                        <div className="flex items-center gap-1 bg-white rounded-xl shadow-sm border border-gray-100 p-1">
+                            {(['all', 'personal', 'shared'] as ExpenseTypeFilter[]).map((type) => (
+                                <button
+                                    key={type}
+                                    onClick={() => setExpenseFilter(type)}
+                                    className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${expenseFilter === type
+                                            ? 'bg-indigo-500 text-white shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {type === 'all' ? 'All' : type === 'personal' ? 'Personal' : 'Shared'}
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Spending Trend */}
                         {comparison && (
                             <SpendingTrendChart trendData={trendData} comparison={comparison} />

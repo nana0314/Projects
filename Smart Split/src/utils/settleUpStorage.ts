@@ -108,3 +108,19 @@ export async function performSettleUpForGroup(userId: string, groupId: string): 
   });
   await settleUpExpensesForGroup(groupId);
 }
+
+/**
+ * Perform a partial settle up — records a payment of a specific amount
+ * between two users without fully settling all expenses.
+ */
+export async function performPartialSettleUp(
+  userId: string,
+  targetId: string,
+  amount: number,
+  userName: string,
+  targetName: string,
+  groupId?: string
+): Promise<void> {
+  const { createSettlementExpense } = await import('@/src/utils/expenses');
+  await createSettlementExpense(userId, targetId, amount, userName, targetName, groupId);
+}
