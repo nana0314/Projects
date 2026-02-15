@@ -109,3 +109,45 @@ Transform the existing Next.js PWA into a Native Mobile App (iOS & Android) usin
     - iOS: `CFBundleVersion` (Build number, e.g., 1.0.0.1)
     - Android: `versionCode` (Integer, e.g., 10001)
     - *Tip*: Automate this using `capacitor-set-version` package.
+
+
+## 🔴 BUILD AFTER iOS/Android Deployment (Requires Capacitor)
+
+### Feature 11: Native QR Scanner
+
+> **PWA vs Native**: QR scanning on PWA (via `jsQR` / `html5-qrcode`) has low frame rates, poor autofocus, and high latency — your previous attempt was reverted for exactly these reasons. Native `capacitor-community/barcode-scanner` uses device hardware for instant, reliable scanning. **This is a significant quality gap — wait for native.**
+
+#### [NEW] QR Scanner component using `capacitor-community/barcode-scanner`
+- Full-screen native camera overlay
+- Detects User ID / Group ID from QR codes
+
+---
+
+### Feature 12: Native Apple Sign-In
+
+> Web popup (`signInWithPopup` + Apple provider) can be added now for Safari, but the real native Apple Sign-In (Face ID prompt) requires `@capacitor-firebase/authentication`.
+
+#### [MODIFY] [src/utils/auth.ts](file:///c:/Users/songz/projects/Smart%20Split/src/utils/auth.ts)
+- Add native Apple Sign-In via Capacitor plugin
+- Platform detection: native → plugin, web → popup fallback
+
+---
+
+### Feature 13: FCM Push Notifications
+
+> In-app notification UI can be built now (Feature 5 InsightsCard), but actual push when app is in background requires native plugins.
+
+#### Plugin: `@capacitor/push-notifications`
+- Token registration → store in `users/{uid}/fcmTokens/`
+- iOS: APNs key upload to Firebase Console
+- Android: FCM auto-configured via `google-services.json`
+
+---
+
+### Feature 14: App Icons, Splash Screens, Deep Linking
+
+#### `@capacitor/assets` for icons/splash
+#### `smartsplit://` URL scheme in native config
+#### Version codes in Xcode/Android Studio
+
+---

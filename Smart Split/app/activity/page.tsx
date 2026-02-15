@@ -10,6 +10,7 @@ import { Expense, User, ExpenseCategory, Group } from '@/src/types';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import CategoryBadge from '@/src/components/CategoryBadge';
+import { ActivitySkeleton } from '@/src/components/SkeletonLoader';
 
 export default function RecentActivity() {
   const { user, userData, loading } = useAuth();
@@ -319,7 +320,7 @@ export default function RecentActivity() {
         )}
 
         {loadingExpenses ? (
-          <div className="text-center py-12 text-gray-500">Loading expenses...</div>
+          <ActivitySkeleton />
         ) : expenses.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <p className="text-gray-500">

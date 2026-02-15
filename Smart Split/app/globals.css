@@ -7,12 +7,235 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ========================================
+   DARK MODE – Global CSS Overrides
+   Remaps common Tailwind utility colors
+   so every page gets dark mode for free.
+   ======================================== */
+
+/* Page & section backgrounds */
+.dark body,
+.dark html {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
 }
+
+/* bg-white → slate-800 */
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+/* bg-gray-50 → slate-900 */
+.dark .bg-gray-50 {
+  background-color: #0f172a !important;
+}
+
+/* bg-gray-100 → slate-700 */
+.dark .bg-gray-100 {
+  background-color: #334155 !important;
+}
+
+/* bg-gray-200 → slate-600 */
+.dark .bg-gray-200 {
+  background-color: #475569 !important;
+}
+
+/* text-gray-800 → slate-100 */
+.dark .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+
+/* text-gray-700 → slate-200 */
+.dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+/* text-gray-600 → slate-300 */
+.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+/* text-gray-500 → slate-400 */
+.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+/* text-gray-400 → slate-500 */
+.dark .text-gray-400 {
+  color: #64748b !important;
+}
+
+/* text-gray-900 → slate-50 */
+.dark .text-gray-900 {
+  color: #f8fafc !important;
+}
+
+/* border-gray-200 → slate-700 */
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+/* border-gray-100 → slate-700 */
+.dark .border-gray-100 {
+  border-color: #334155 !important;
+}
+
+/* border-gray-300 → slate-600 */
+.dark .border-gray-300 {
+  border-color: #475569 !important;
+}
+
+/* divide-gray-200 → slate-700 */
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+/* divide-gray-100 → slate-700 */
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+/* border-t with gray-200 */
+.dark .border-t {
+  border-top-color: #334155 !important;
+}
+
+/* border-b with gray-200 */
+.dark .border-b {
+  border-bottom-color: #334155 !important;
+}
+
+/* shadows – softer in dark mode */
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important;
+}
+
+.dark .shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3) !important;
+}
+
+.dark .shadow-lg {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4) !important;
+}
+
+/* hover:bg-gray-50 → hover:slate-700 */
+.dark .hover\:bg-gray-50:hover {
+  background-color: #334155 !important;
+}
+
+/* hover:bg-gray-100 → hover:slate-600 */
+.dark .hover\:bg-gray-100:hover {
+  background-color: #475569 !important;
+}
+
+/* hover:bg-gray-200 → hover:slate-500 */
+.dark .hover\:bg-gray-200:hover {
+  background-color: #64748b !important;
+}
+
+/* bg-gray-50/50 → semi-transparent dark */
+.dark [class*="bg-gray-50/"] {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+/* bg-black bg-opacity- overlays stay the same → just slightly darker */
+.dark .bg-black.bg-opacity-50 {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Input fields */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="number"],
+.dark input[type="date"],
+.dark input[type="password"],
+.dark input[type="search"],
+.dark input[type="tel"],
+.dark input[type="url"],
+.dark textarea,
+.dark select {
+  color: #f1f5f9 !important;
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Focus rings → blue-400 on dark */
+.dark .focus\:ring-blue-500:focus,
+.dark .focus\:ring-2:focus {
+  --tw-ring-color: #60a5fa !important;
+}
+
+/* Alerts / status banners */
+.dark .bg-red-50 {
+  background-color: rgba(127, 29, 29, 0.3) !important;
+}
+.dark .border-red-200 {
+  border-color: #991b1b !important;
+}
+.dark .bg-green-50 {
+  background-color: rgba(20, 83, 45, 0.3) !important;
+}
+.dark .border-green-200 {
+  border-color: #166534 !important;
+}
+.dark .bg-blue-50 {
+  background-color: rgba(30, 58, 138, 0.3) !important;
+}
+.dark .border-blue-200 {
+  border-color: #1e40af !important;
+}
+.dark .bg-yellow-50 {
+  background-color: rgba(113, 63, 18, 0.3) !important;
+}
+
+/* purple tones for simplify toggle */
+.dark .bg-purple-100 {
+  background-color: rgba(88, 28, 135, 0.4) !important;
+}
+.dark .text-purple-700 {
+  color: #c084fc !important;
+}
+
+/* Category badges */
+.dark .bg-indigo-100 {
+  background-color: rgba(49, 46, 129, 0.4) !important;
+}
+.dark .text-indigo-700 {
+  color: #a5b4fc !important;
+}
+
+/* Nav bar blinking indicator – dark mode */
+.dark .nav-btn-blink::before {
+  background: rgba(34, 197, 94, 0.1) !important;
+}
+
+/* Form labels and text – dark mode */
+.dark form label,
+.dark form span:not(.text-red-500):not(.text-green-700):not(.text-red-700),
+.dark form h2 {
+  color: #e2e8f0 !important;
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+/* ========================================
+   END DARK MODE OVERRIDES
+   ======================================== */
 
 body {
   color: var(--foreground);

@@ -13,6 +13,7 @@ import { calculateGroupBalances } from '@/src/utils/expenses';
 import { getSettleUpData, shouldHideSettledUp } from '@/src/utils/settleUpStorage';
 import { Group } from '@/src/types';
 import Link from 'next/link';
+import { PageSkeleton, GroupsListSkeleton } from '@/src/components/SkeletonLoader';
 
 export default function Groups() {
   const { user, userData, loading } = useAuth();
@@ -159,11 +160,7 @@ export default function Groups() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (!user) {
@@ -243,7 +240,7 @@ export default function Groups() {
           </div>
 
           {loadingGroups ? (
-            <div className="p-8 text-center text-gray-500">Loading groups...</div>
+            <GroupsListSkeleton />
           ) : activeGroups.length === 0 && settledGroups.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               No groups with expenses yet. Use Join or + above to create or join a group and add expenses.

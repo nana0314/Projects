@@ -4,8 +4,7 @@ import { AuthProvider } from "@/src/context/AuthContext";
 import PWARegister from "@/src/components/PWARegister";
 import BottomNav from "@/src/components/BottomNav";
 import FloatingAddExpense from "@/src/components/FloatingAddExpense";
-import FloatingSettleUp from "@/src/components/FloatingSettleUp";
-import FloatingSimplify from "@/src/components/FloatingSimplify";
+import { ThemeProvider } from "@/src/context/ThemeContext";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -49,14 +48,14 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthProvider>
-          {children}
-          <Analytics />
-          <SpeedInsights />
-          <BottomNav />
-          <FloatingSettleUp />
-          <FloatingSimplify />
-          <FloatingAddExpense />
-          <PWARegister />
+          <ThemeProvider>
+            {children}
+            <Analytics />
+            <SpeedInsights />
+            <BottomNav />
+            <FloatingAddExpense />
+            <PWARegister />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
