@@ -7,7 +7,7 @@ Welcome to my project repository! This collection showcases my journey across fu
 ### 1. [Smart Split](./Smart%20Split) 🐻
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA
 
-A modern, AI-powered Progressive Web App for splitting expenses with friends.
+A modern, AI-powered Progressive Web App for finance expenses tracking and splitting with friends.
 - **AI Integration:** Uses Vertex AI (Gemini) for receipt scanning and NLP for chat-based expense entry.
 - **Complex Logic:** Algorithms for debt simplification and partial payments.
 - **Data Viz:** Interactive dashboards for spending trends and debt networks.
