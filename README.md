@@ -1,20 +1,53 @@
-# Projects
-Past Projects done
+# Nana0314's Projects Portfolio 🚀
 
-**COMP1044** is about prompting queries with basic knowledge of SQL and database.
+Welcome to my project repository! This collection showcases my journey across full-stack web development, mobile applications, IoT systems, and algorithmic research.
 
-**YEOHZISONG_20306220** is about creating a covid system to detect people entering a mall and letting them know the average time they can enter and the distance between them and other people to ensure covid-free by using Java.
+## 🌟 Featured Projects
 
-**library.c** is a system library done by using C in adding, deleting, searching, listing books by using linked list.
+### 1. [Smart Split](./Smart%20Split) 🐻
+**Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA
 
-**Comparison of algorithms to solve TSP** is a algorithm and conference paper that concludes the 3 algorithms me and my groupmates had used to solve the Travelling Salesman Problem(TSP). The 3 algorithms are Lin-kernighan, Nearest Neighbor and Ant colony Optimization.
+A modern, AI-powered Progressive Web App for splitting expenses with friends.
+- **AI Integration:** Uses Vertex AI (Gemini) for receipt scanning and NLP for chat-based expense entry.
+- **Complex Logic:** Algorithms for debt simplification and partial payments.
+- **Data Viz:** Interactive dashboards for spending trends and debt networks.
 
-**Software-Grp-F** is a Software Engineering Group Project is a full academic year project done by me and my groupmates which is digitalizing a physical board game by working closely with our client and supervisor.
+### 2. [Stayin' Alive](./Stayin'%20Alive) 🏥
+**Tech Stack:** React Native, Expo
 
-**COMP2042YeohZiSong** is about debugging a bugged 2048 in java within a month and add in creative scenes by using SceneBuilder with javafx.
+A personal safety application designed to ensure user well-being.
+- **Automated Check-ins:** Daily check-in system to confirm safety.
+- **Emergency Protocols:** Automatically notifies emergency contacts if inactivity is detected for 48 hours.
+- **Background Tasks:** Monitors user activity efficiently without draining battery.
 
-**Yeoh Zi Song's FYP** is my final year project titled "Well-Rounded IoT-based Home Security System", which utilizes the IoT technology in implementing a home security system, covering all aspects of security concepts and equipments along with a special feature of "Lock-Down" mechanism
+### 3. [Home Security IoT System](./Yeoh%20Zi%20Song's%20FYP) 🔒
+**Tech Stack:** Raspberry Pi, Python, IoT Sensors
 
-**Using TSP algorithm to solve courier services in Berlin** is about utilizing the TSP algorithms to come up with shortest route length with a shorter running time for the courier servcies to follow along the route in delivering
+My Final Year Project (FYP) implementing a comprehensive "Well-Rounded IoT-based Home Security System".
+- **Hardware Integration:** NFC/RFID access control, motion detectors, and cameras.
+- **Remote Control:** Integrated with Blynk app for remote monitoring.
+- **Lock-Down Mechanism:** Special feature to secure the premises instantly in emergencies.
 
-**Creating a website links to Youtube videos** is about create a new website that uses the Youtube's API to enable search engine, videos searching and videos playing.
+---
+
+## 📚 University & Academic Projects
+
+A collection of my coursework and research projects exploring algorithms and foundational software engineering.
+
+### [University Projects Archive](./University%20projects)
+
+- **Software Engineering Group Project (Board Game Digitization):** Full academic year project digitizing a physical board game, working closely with clients.
+- **Travelling Salesman Problem (TSP) Research:**
+  - **Comparison of Algorithms:** Conference paper comparing Lin-Kernighan, Nearest Neighbor, and Ant Colony Optimization.
+  - **Courier Service Optimization:** Applied TSP algorithms to optimize delivery routes in Berlin.
+- **Java Applications:**
+  - **Covid Management System:** Tracking mall entry/exit and social distancing.
+  - **2048 Game Refactor:** Debugged and enhanced a JavaFX version of the 2048 game.
+- **C Libraries:** Created a custom library `library.c` for managing books using linked lists.
+- **Web Development:** Created a video search engine using YouTube Data API.
+
+---
+
+## 📫 Contact
+
+Feel free to explore the code in each folder!
