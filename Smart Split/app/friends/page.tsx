@@ -11,6 +11,7 @@ import { User } from '@/src/types';
 import Link from 'next/link';
 import QRCodeModal from '@/src/components/QRCodeModal';
 import BlockReportMenu from '@/src/components/BlockReportMenu';
+import { PageSkeleton, FriendsListSkeleton } from '@/src/components/SkeletonLoader';
 
 export default function Friends() {
   const { user, userData, loading } = useAuth();
@@ -142,11 +143,7 @@ export default function Friends() {
   );
 
   if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (
@@ -291,7 +288,7 @@ export default function Friends() {
           </div>
 
           {loadingFriends ? (
-            <div className="p-8 text-center text-gray-500">Loading friends...</div>
+            <FriendsListSkeleton />
           ) : (
             <>
               {visibleFriends.length === 0 ? (
@@ -305,7 +302,7 @@ export default function Friends() {
                     const owedFromAmount = owedFrom[friend.uid] || 0;
                     const netBalance = owedFromAmount - owedToAmount;
                     return (
-                      <div key={friend.uid} className="p-6 flex items-center justify-between">
+                      <Link key={friend.uid} href={`/friends/details?id=${friend.uid}`} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-4">
                           {friend.photoURL ? (
                             <img
@@ -325,27 +322,25 @@ export default function Friends() {
                             <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
                           </div>
                         </div>
-                        {netBalance > 0 && (
-                          <span className="text-sm text-green-600 font-medium">
-                            You're owed ${netBalance.toFixed(2)}
-                          </span>
-                        )}
-                        {netBalance < 0 && (
-                          <span className="text-sm text-red-600 font-medium">
-                            You owe ${Math.abs(netBalance).toFixed(2)}
-                          </span>
-                        )}
-                        {netBalance === 0 && (
-                          <span className="text-sm text-gray-400">settled up</span>
-                        )}
-                        <BlockReportMenu
-                          currentUserId={user!.uid}
-                          targetUserId={friend.uid}
-                          targetName={friend.displayName}
-                          isBlocked={blockedIds.has(friend.uid)}
-                          onBlockChange={() => loadFriends()}
-                        />
-                      </div>
+                        <div className="flex items-center gap-2">
+                          {netBalance > 0 && (
+                            <span className="text-sm text-green-600 font-medium">
+                              You&apos;re owed ${netBalance.toFixed(2)}
+                            </span>
+                          )}
+                          {netBalance < 0 && (
+                            <span className="text-sm text-red-600 font-medium">
+                              You owe ${Math.abs(netBalance).toFixed(2)}
+                            </span>
+                          )}
+                          {netBalance === 0 && (
+                            <span className="text-sm text-gray-400">settled up</span>
+                          )}
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </Link>
                     );
                   })}
                   {hideSettled && settledFriends.length > 0 && !showSettledUp && (
@@ -367,7 +362,7 @@ export default function Friends() {
                         Hide {settledFriends.length} settled-up friend{settledFriends.length !== 1 ? 's' : ''}
                       </button>
                       {settledFriends.map((friend) => (
-                        <div key={friend.uid} className="p-6 flex items-center justify-between bg-gray-50/50">
+                        <Link key={friend.uid} href={`/friends/details?id=${friend.uid}`} className="p-6 flex items-center justify-between bg-gray-50/50 hover:bg-gray-100 transition-colors cursor-pointer">
                           <div className="flex items-center gap-4">
                             {friend.photoURL ? (
                               <img
@@ -387,13 +382,18 @@ export default function Friends() {
                               <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
                             </div>
                           </div>
-                          <span className="text-sm text-gray-400">settled up</span>
-                        </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-400">settled up</span>
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </Link>
                       ))}
                     </>
                   )}
                   {!hideSettled && settledFriends.map((friend) => (
-                    <div key={friend.uid} className="p-6 flex items-center justify-between bg-gray-50/50">
+                    <Link key={friend.uid} href={`/friends/details?id=${friend.uid}`} className="p-6 flex items-center justify-between bg-gray-50/50 hover:bg-gray-100 transition-colors cursor-pointer">
                       <div className="flex items-center gap-4">
                         {friend.photoURL ? (
                           <img
@@ -413,12 +413,17 @@ export default function Friends() {
                           <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
                         </div>
                       </div>
-                      <span className="text-sm text-gray-400">settled up</span>
-                    </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">settled up</span>
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </Link>
                   ))}
                   {/* Other friends (no balance, no settle-up data) */}
                   {otherFriends.map((friend) => (
-                    <div key={friend.uid} className="p-6 flex items-center justify-between">
+                    <Link key={friend.uid} href={`/friends/details?id=${friend.uid}`} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer">
                       <div className="flex items-center gap-4">
                         {friend.photoURL ? (
                           <img
@@ -438,15 +443,13 @@ export default function Friends() {
                           <p className="text-sm text-gray-500">ID: {friend.uniqueId}</p>
                         </div>
                       </div>
-                      <span className="text-sm text-gray-400">settled up</span>
-                      <BlockReportMenu
-                        currentUserId={user!.uid}
-                        targetUserId={friend.uid}
-                        targetName={friend.displayName}
-                        isBlocked={blockedIds.has(friend.uid)}
-                        onBlockChange={() => loadFriends()}
-                      />
-                    </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">settled up</span>
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </Link>
                   ))}
                 </div>
               )}

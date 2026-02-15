@@ -17,6 +17,8 @@ import {
 import {
     startOfDay,
     endOfDay,
+    startOfMonth,
+    endOfMonth,
     subDays,
     format,
     isWithinInterval,
@@ -58,22 +60,23 @@ const MERCHANT_COLORS = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
 // =============================================================================
 
 /**
- * Get the current period boundaries (start and end dates)
+ * Get the current period boundaries (calendar month: 1st of month to end of month)
  */
 export const getCurrentPeriod = (referenceDate: Date = new Date()): { start: Date; end: Date } => {
+    const start = startOfMonth(referenceDate);
     const end = endOfDay(referenceDate);
-    const start = startOfDay(subDays(referenceDate, PERIOD_DAYS - 1));
     return { start, end };
 };
 
 /**
- * Get period boundaries for a specific number of periods ago
- * 0 = current period, 1 = previous period, etc.
+ * Get period boundaries for a specific number of periods (months) ago
+ * 0 = current period, 1 = previous month, etc.
  */
 export const getPeriodByOffset = (offset: number, referenceDate: Date = new Date()): { start: Date; end: Date } => {
-    const daysAgo = offset * PERIOD_DAYS;
-    const periodEnd = endOfDay(subDays(referenceDate, daysAgo));
-    const periodStart = startOfDay(subDays(periodEnd, PERIOD_DAYS - 1));
+    const targetDate = new Date(referenceDate);
+    targetDate.setMonth(targetDate.getMonth() - offset);
+    const periodStart = startOfMonth(targetDate);
+    const periodEnd = offset === 0 ? endOfDay(referenceDate) : endOfMonth(targetDate);
     return { start: periodStart, end: periodEnd };
 };
 
@@ -81,7 +84,7 @@ export const getPeriodByOffset = (offset: number, referenceDate: Date = new Date
  * Format period label for display
  */
 export const formatPeriodLabel = (start: Date, end: Date): string => {
-    return `${format(start, 'MMM d')}-${format(end, 'd')}`;
+    return format(start, 'MMM yyyy');
 };
 
 // =============================================================================

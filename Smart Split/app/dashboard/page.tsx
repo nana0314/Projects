@@ -32,6 +32,8 @@ import DailyAverageCard from '@/src/components/dashboard/DailyAverageCard';
 import ActiveGroupsChart from '@/src/components/dashboard/ActiveGroupsChart';
 import InsightsCard from '@/src/components/dashboard/InsightsCard';
 import OutstandingBalances from '@/src/components/dashboard/OutstandingBalances';
+import { PageSkeleton, DashboardSkeleton } from '@/src/components/SkeletonLoader';
+import FloatingThemeToggle from '@/src/components/FloatingThemeToggle';
 
 interface GroupWithAnalytics {
     group: Group;
@@ -58,6 +60,23 @@ export default function Dashboard() {
     const [dailyStats, setDailyStats] = useState<DailyAverageStats | null>(null);
     const [groupsWithAnalytics, setGroupsWithAnalytics] = useState<GroupWithAnalytics[]>([]);
     const [expenseFilter, setExpenseFilter] = useState<ExpenseTypeFilter>('all');
+
+    // Simplify debts toggle
+    const [simplify, setSimplify] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('simplifyDebts');
+            setSimplify(saved === 'true');
+        }
+    }, []);
+
+    const toggleSimplify = () => {
+        const newValue = !simplify;
+        setSimplify(newValue);
+        localStorage.setItem('simplifyDebts', String(newValue));
+        window.dispatchEvent(new Event('simplifyToggled'));
+    };
 
     // Auth redirect
     useEffect(() => {
@@ -163,11 +182,7 @@ export default function Dashboard() {
     const actualSpending = dailyStats?.totalSpending ?? 0;
 
     if (loading || !user) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-xl">Authenticating...</div>
-            </div>
-        );
+        return <PageSkeleton />;
     }
 
     const profilePhotoURL = userData?.photoURL || user?.photoURL;
@@ -212,27 +227,39 @@ export default function Dashboard() {
                             <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
                         </div>
 
-                        {/* Right: Refresh button */}
-                        <button
-                            onClick={fetchData}
-                            disabled={dataLoading}
-                            className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-                            title="Refresh"
-                        >
-                            <svg
-                                className={`w-5 h-5 text-gray-500 ${dataLoading ? 'animate-spin' : ''}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                        {/* Right: Simplify toggle + Refresh button */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={toggleSimplify}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${simplify
+                                    ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    }`}
+                                title={simplify ? 'Simplify debts: ON' : 'Simplify debts: OFF'}
                             >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                />
-                            </svg>
-                        </button>
+                                {simplify ? '✓ Simplified' : 'Simplify'}
+                            </button>
+                            <button
+                                onClick={fetchData}
+                                disabled={dataLoading}
+                                className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+                                title="Refresh"
+                            >
+                                <svg
+                                    className={`w-5 h-5 text-gray-500 ${dataLoading ? 'animate-spin' : ''}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -240,30 +267,7 @@ export default function Dashboard() {
             {/* Main Content */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {dataLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="text-center">
-                            <svg
-                                className="w-8 h-8 mx-auto text-indigo-500 animate-spin mb-2"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                            >
-                                <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                />
-                                <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                />
-                            </svg>
-                            <p className="text-sm text-gray-500">Loading analytics...</p>
-                        </div>
-                    </div>
+                    <DashboardSkeleton />
                 ) : (
                     <div className="space-y-4">
                         {/* AI Insights Card */}
@@ -279,8 +283,8 @@ export default function Dashboard() {
                                     key={type}
                                     onClick={() => setExpenseFilter(type)}
                                     className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${expenseFilter === type
-                                            ? 'bg-indigo-500 text-white shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                        ? 'bg-indigo-500 text-white shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                                         }`}
                                 >
                                     {type === 'all' ? 'All' : type === 'personal' ? 'Personal' : 'Shared'}
@@ -348,6 +352,7 @@ export default function Dashboard() {
                     </div>
                 )}
             </main>
+            <FloatingThemeToggle />
         </div>
     );
 }

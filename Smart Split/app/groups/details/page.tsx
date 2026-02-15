@@ -23,6 +23,7 @@ import { Group, User, Expense, ExpenseCategory } from '@/src/types';
 import { format } from 'date-fns';
 import CategoryBadge from '@/src/components/CategoryBadge';
 import BlockReportMenu from '@/src/components/BlockReportMenu';
+import { performSettleUpForGroup, performPartialSettleUp } from '@/src/utils/settleUpStorage';
 import { PeriodSpending, CategoryBreakdown, TrendComparison } from '@/src/types/analytics';
 import {
   calculateGroupSpendingTrend,
@@ -91,6 +92,12 @@ export default function GroupDetails() {
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Settle up state
+  const [settlingUp, setSettlingUp] = useState(false);
+  const [showGroupSettleConfirm, setShowGroupSettleConfirm] = useState(false);
+  const [showGroupPartial, setShowGroupPartial] = useState(false);
+  const [groupPartialAmount, setGroupPartialAmount] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -455,6 +462,57 @@ export default function GroupDetails() {
     }
   };
 
+  // Group settle up handlers
+  const getGroupNetBalance = (): number => {
+    const toTotal = Object.values(owedTo).reduce((s, a) => s + a, 0);
+    const fromTotal = Object.values(owedFrom).reduce((s, a) => s + a, 0);
+    return fromTotal - toTotal;
+  };
+
+  const handleGroupSettleFull = async () => {
+    if (!user || !groupId) return;
+    setSettlingUp(true);
+    setError('');
+    try {
+      await performSettleUpForGroup(user.uid, groupId);
+      setSuccess('Settled up in ' + group?.name + '!');
+      setShowGroupSettleConfirm(false);
+      setTimeout(() => loadGroupData(), 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to settle up');
+    } finally {
+      setSettlingUp(false);
+    }
+  };
+
+  const handleGroupPartialSettle = async () => {
+    if (!user || !groupId || !group) return;
+    const amount = parseFloat(groupPartialAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+    setSettlingUp(true);
+    setError('');
+    try {
+      await performPartialSettleUp(
+        user.uid,
+        groupId,
+        amount,
+        user.displayName || 'You',
+        group.name,
+        groupId
+      );
+      setSuccess(`Partial payment of $${amount.toFixed(2)} recorded`);
+      setShowGroupPartial(false);
+      setGroupPartialAmount('');
+      setTimeout(() => loadGroupData(), 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to record partial payment');
+    } finally {
+      setSettlingUp(false);
+    }
+  };
 
   if (authLoading || loading || !user || !userData) {
     return (
@@ -700,6 +758,82 @@ export default function GroupDetails() {
                 );
               })()}
             </div>
+
+            {/* Settle Up for Group */}
+            {Math.abs(getGroupNetBalance()) > 0.01 && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-3">Settle Up</h2>
+                {showGroupSettleConfirm ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-700">
+                      Settle ${Math.abs(getGroupNetBalance()).toFixed(2)} in {group?.name}?
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowGroupSettleConfirm(false)}
+                        className="flex-1 px-3 py-2 text-sm font-medium bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleGroupSettleFull}
+                        disabled={settlingUp}
+                        className="flex-1 px-3 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {settlingUp ? 'Settling...' : 'Confirm'}
+                      </button>
+                    </div>
+                  </div>
+                ) : showGroupPartial ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={Math.abs(getGroupNetBalance())}
+                        value={groupPartialAmount}
+                        onChange={(e) => setGroupPartialAmount(e.target.value)}
+                        placeholder="Amount"
+                        className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setShowGroupPartial(false); setGroupPartialAmount(''); }}
+                        className="flex-1 px-3 py-2 text-sm font-medium bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleGroupPartialSettle}
+                        disabled={settlingUp || !groupPartialAmount}
+                        className="flex-1 px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {settlingUp ? 'Paying...' : 'Pay'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowGroupPartial(true)}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 active:scale-95 transition-transform"
+                    >
+                      Partial
+                    </button>
+                    <button
+                      onClick={() => setShowGroupSettleConfirm(true)}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-transform"
+                    >
+                      Settle Up
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
