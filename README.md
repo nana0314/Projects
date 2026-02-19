@@ -6,6 +6,7 @@ Welcome to my project repository! This collection showcases my journey across fu
 
 ### 1. [Smart Split](./Smart%20Split) 🐻
 **https://smart-split-bay.vercel.app/**
+
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA
 
 A modern, AI-powered Progressive Web App for finance expenses tracking and splitting with friends.
