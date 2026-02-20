@@ -2,6 +2,7 @@
 
 Welcome to my project repository! This collection showcases my journey across full-stack web development, mobile applications, IoT systems, and algorithmic research.
 
+<<<<<<< HEAD
 ## 🌟 Featured Projects
 
 ### 1. [Smart Split](./Smart%20Split) 🐻
@@ -28,6 +29,36 @@ My Final Year Project (FYP) implementing a comprehensive "Well-Rounded IoT-based
 - **Remote Control:** Integrated with Blynk app for remote monitoring.
 - **Lock-Down Mechanism:** Special feature to secure the premises instantly in emergencies.
 
+=======
+---
+
+## 🌟 Featured Projects
+
+### 1. [Smart Split](./Smart%20Split) 🐻
+**Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA
+
+A modern, AI-powered Progressive Web App for splitting expenses with friends.
+- **AI Integration:** Uses Vertex AI (Gemini) for receipt scanning and NLP for chat-based expense entry.
+- **Complex Logic:** Algorithms for debt simplification and partial payments.
+- **Data Viz:** Interactive dashboards for spending trends and debt networks.
+
+### 2. [Stayin' Alive](./Stayin'%20Alive) 🏥
+**Tech Stack:** React Native, Expo
+
+A personal safety application designed to ensure user well-being.
+- **Automated Check-ins:** Daily check-in system to confirm safety.
+- **Emergency Protocols:** Automatically notifies emergency contacts if inactivity is detected for 48 hours.
+- **Background Tasks:** Monitors user activity efficiently without draining battery.
+
+### 3. [Home Security IoT System](./Yeoh%20Zi%20Song's%20FYP) 🔒
+**Tech Stack:** Raspberry Pi, Python, IoT Sensors
+
+My Final Year Project (FYP) implementing a comprehensive "Well-Rounded IoT-based Home Security System".
+- **Hardware Integration:** NFC/RFID access control, motion detectors, and cameras.
+- **Remote Control:** Integrated with Blynk app for remote monitoring.
+- **Lock-Down Mechanism:** Special feature to secure the premises instantly in emergencies.
+
+>>>>>>> 9ca1b77 (docs: Update portfolio README)
 ---
 
 ## 📚 University & Academic Projects

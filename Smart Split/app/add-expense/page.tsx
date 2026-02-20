@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/src/context/AuthContext';
 import { getUserFriends } from '@/src/utils/friends';
 import { getUserGroups, getGroupMembers } from '@/src/utils/groups';
 import { createExpense } from '@/src/utils/expenses';
+import { scanReceipt } from '@/src/utils/receiptScanner';
 import { User, Group, ExpenseCategory } from '@/src/types';
 
 type FriendOption = 'you_paid_equal' | 'you_owed_full' | 'friend_paid_equal' | 'friend_owed_full' | 'custom';
@@ -21,6 +22,8 @@ export default function AddExpensePage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
 
   // Selection: exactly one friend OR one group OR personal
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -97,7 +100,7 @@ export default function AddExpensePage() {
     }
   };
 
-  // Handle pre-selection from URL params (e.g., from group details page)
+  // Handle pre-selection from URL params (e.g., from group details page or AI chat)
   useEffect(() => {
     if (typeof window !== 'undefined' && groups.length > 0) {
       const params = new URLSearchParams(window.location.search);
@@ -108,6 +111,13 @@ export default function AddExpensePage() {
           selectGroup(group);
         }
       }
+      // Prefill from AI chat assistant
+      const prefillDesc = params.get('description');
+      const prefillAmount = params.get('amount');
+      const prefillCategory = params.get('category');
+      if (prefillDesc) setDescription(prefillDesc);
+      if (prefillAmount) setAmount(prefillAmount);
+      if (prefillCategory) setCategory(prefillCategory as ExpenseCategory);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups]);
@@ -316,10 +326,42 @@ export default function AddExpensePage() {
     }
   };
 
+  const handleScanReceipt = async (file: File) => {
+    if (!user) return;
+    setScanning(true);
+    setError('');
+    try {
+      const result = await scanReceipt(user.uid, file);
+      if (result.success) {
+        if (result.merchant) setDescription(result.merchant);
+        if (result.total) setAmount(result.total.toString());
+        if (result.category) setCategory(result.category as ExpenseCategory);
+        setSuccess('Receipt scanned! Review the details below.');
+      } else {
+        setError(result.message || 'Could not read receipt. Please try manual entry.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to scan receipt. Please try manual entry.');
+    } finally {
+      setScanning(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Scanning overlay */}
+      {scanning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-xl">
+            <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-900 font-medium">Scanning receipt...</p>
+            <p className="text-gray-500 text-sm">This may take a few seconds</p>
+          </div>
+        </div>
+      )}
+
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <Link
           href="/friends"
@@ -335,6 +377,33 @@ export default function AddExpensePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-xl mx-auto">
+        {/* Scan Receipt button */}
+        <button
+          type="button"
+          onClick={() => receiptInputRef.current?.click()}
+          disabled={scanning}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-700 font-medium hover:bg-indigo-100 transition-colors active:scale-[0.98] disabled:opacity-50"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {"\u{1F4F8}"} Scan Receipt
+        </button>
+        <input
+          type="file"
+          ref={receiptInputRef}
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              handleScanReceipt(file);
+              e.target.value = '';
+            }
+          }}
+        />
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             {error}

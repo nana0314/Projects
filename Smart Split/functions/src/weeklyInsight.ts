@@ -199,7 +199,7 @@ async function generateAIInsight(
         });
 
         const model = vertexAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.5-flash-lite',
         });
 
         const prompt = `You are a helpful personal finance assistant. Analyze this user's weekly spending and provide a brief, friendly summary and 2-3 actionable tips.
