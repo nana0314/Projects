@@ -341,7 +341,14 @@ export default function RecentActivity() {
 
                 return (
                   <div key={expense.id} className="p-4">
-                    <div className="flex items-start gap-3">
+                    <div
+                      className={`flex items-start gap-3 ${(expense.createdBy === user?.uid || expense.payerId === user?.uid) ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (expense.createdBy === user?.uid || expense.payerId === user?.uid) {
+                          router.push(`/add-expense?editId=${expense.id}`);
+                        }
+                      }}
+                    >
                       {/* Payer avatar */}
                       {payerPhoto ? (
                         <img
@@ -436,16 +443,34 @@ export default function RecentActivity() {
                         )}
                       </div>
 
-                      {/* Delete button */}
+                      {/* Action buttons */}
                       {(expense.createdBy === user?.uid || expense.payerId === user?.uid) && (
-                        <button
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          disabled={deleting === expense.id}
-                          className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-                          title="Delete expense"
-                        >
-                          {deleting === expense.id ? '...' : '×'}
-                        </button>
+                        <div className="flex flex-col gap-1 flex-shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/add-expense?editId=${expense.id}`);
+                            }}
+                            className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                            title="Edit expense"
+                          >
+                            {/* Pencil icon */}
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteExpense(expense.id);
+                            }}
+                            disabled={deleting === expense.id}
+                            className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            title="Delete expense"
+                          >
+                            {deleting === expense.id ? '...' : '\u00D7'}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

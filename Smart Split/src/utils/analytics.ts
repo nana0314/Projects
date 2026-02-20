@@ -309,7 +309,7 @@ export const calculateCategoryBreakdown = (
 // =============================================================================
 
 /**
- * Calculate top 3 merchants for current period
+ * Calculate top 5 merchants for current period
  * Uses expense description as merchant name
  */
 export const calculateMerchantBreakdown = (
@@ -348,7 +348,7 @@ export const calculateMerchantBreakdown = (
     const sortedMerchants = Object.entries(merchantTotals)
         .filter(([, amount]) => amount > 0)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 3);
+        .slice(0, 5);
 
     const total = sortedMerchants.reduce((sum, [, amount]) => sum + amount, 0);
 

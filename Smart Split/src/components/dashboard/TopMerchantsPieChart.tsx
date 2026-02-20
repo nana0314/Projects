@@ -96,7 +96,7 @@ export default function TopMerchantsPieChart({ data }: TopMerchantsPieChartProps
             <ChartModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Top 3 Merchants"
+                title="Top 5 Merchants"
             >
                 {renderChart(250, true)}
                 <div className="mt-4 space-y-2">

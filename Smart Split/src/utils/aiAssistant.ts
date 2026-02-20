@@ -1,5 +1,6 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { ParsedExpense } from '@/src/types/receipt';
+import { getUserExpenses } from '@/src/utils/expenses';
 
 interface FriendInfo {
     uid: string;
@@ -16,9 +17,16 @@ interface ConversationMessage {
     content: string;
 }
 
+interface ExpensePattern {
+    merchant: string;
+    category: string;
+    count: number;
+}
+
 interface ExpenseContext {
     timeOfDay: string;
     currency: string;
+    recentPatterns?: ExpensePattern[];
 }
 
 /**
@@ -42,6 +50,61 @@ export function buildContext(): ExpenseContext {
     const currency = 'USD';
 
     return { timeOfDay, currency };
+}
+
+/**
+ * Extract expense patterns from user's past expenses.
+ * This builds a merchant→category mapping with frequency counts
+ * so the AI can learn from the user's habits.
+ */
+export async function buildExpensePatterns(userId: string): Promise<ExpensePattern[]> {
+    try {
+        const expenses = await getUserExpenses(userId);
+
+        // Build merchant → category frequency map
+        const merchantMap: Record<string, Record<string, number>> = {};
+
+        expenses.forEach((expense) => {
+            const merchant = expense.description?.trim();
+            if (!merchant || merchant === 'Settlement payment') return;
+
+            const category = expense.category || 'Other';
+
+            if (!merchantMap[merchant]) {
+                merchantMap[merchant] = {};
+            }
+            merchantMap[merchant][category] = (merchantMap[merchant][category] || 0) + 1;
+        });
+
+        // For each merchant, pick the most frequently used category
+        const patterns: ExpensePattern[] = [];
+
+        for (const [merchant, categories] of Object.entries(merchantMap)) {
+            // Find the most common category for this merchant
+            let bestCategory = 'Other';
+            let bestCount = 0;
+
+            for (const [category, count] of Object.entries(categories)) {
+                if (count > bestCount) {
+                    bestCategory = category;
+                    bestCount = count;
+                }
+            }
+
+            patterns.push({
+                merchant,
+                category: bestCategory,
+                count: bestCount,
+            });
+        }
+
+        // Sort by frequency (most used first) and take top 20
+        patterns.sort((a, b) => b.count - a.count);
+        return patterns.slice(0, 20);
+    } catch (err) {
+        console.error('Error building expense patterns:', err);
+        return [];
+    }
 }
 
 /**

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/src/context/AuthContext';
 import { getUserFriends } from '@/src/utils/friends';
 import { getUserGroups, getGroupMembers } from '@/src/utils/groups';
-import { createExpense } from '@/src/utils/expenses';
+import { createExpense, updateExpense, getExpenseById } from '@/src/utils/expenses';
 import { scanReceipt } from '@/src/utils/receiptScanner';
 import { User, Group, ExpenseCategory } from '@/src/types';
 
@@ -24,6 +24,10 @@ export default function AddExpensePage() {
   const [success, setSuccess] = useState('');
   const [scanning, setScanning] = useState(false);
   const receiptInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit mode
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
 
   // Selection: exactly one friend OR one group OR personal
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -122,6 +126,87 @@ export default function AddExpensePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups]);
 
+  // Handle edit mode — load existing expense and prefill form
+  useEffect(() => {
+    if (typeof window === 'undefined' || friends.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('editId');
+    if (!id || editId) return; // Already loaded or no editId
+
+    setEditId(id);
+    setEditLoading(true);
+
+    getExpenseById(id).then((expense) => {
+      if (!expense) {
+        setError('Expense not found');
+        setEditLoading(false);
+        return;
+      }
+
+      // Prefill basic fields
+      setDescription(expense.description || '');
+      setAmount(expense.amount.toString());
+      setCategory(expense.category);
+
+      // Determine expense type and prefill accordingly
+      if (expense.groupId) {
+        // Group expense
+        const group = groups.find(g => g.id === expense.groupId);
+        if (group) {
+          selectGroup(group);
+          // Wait for group members to load, then set participants and payer
+          getGroupMembers(group.id).then((members) => {
+            setGroupMembers(members);
+            setPayerId(expense.payerId);
+            setParticipants(expense.participants);
+
+            if (expense.splitType === 'custom' && expense.splitAmounts) {
+              setShowCustom(true);
+              setSplitType('custom');
+              const amounts: { [uid: string]: string } = {};
+              for (const [uid, amt] of Object.entries(expense.splitAmounts)) {
+                amounts[uid] = amt.toString();
+              }
+              setCustomAmounts(amounts);
+            }
+            setEditLoading(false);
+          });
+        } else {
+          setEditLoading(false);
+        }
+      } else if (expense.participants.length === 1 && expense.participants[0] === user?.uid) {
+        // Personal expense
+        selectPersonal();
+        setEditLoading(false);
+      } else {
+        // Friend expense
+        const friendId = expense.participants.find(id => id !== user?.uid);
+        const friend = friends.find(f => f.uid === friendId);
+        if (friend) {
+          selectFriend(friend);
+
+          if (expense.splitType === 'custom' && expense.splitAmounts) {
+            setFriendOption('custom');
+            setFriendPayerId(expense.payerId);
+            setFriendCustomAmounts({
+              you: (expense.splitAmounts[user?.uid || ''] || 0).toString(),
+              friend: (expense.splitAmounts[friend.uid] || 0).toString(),
+            });
+          } else if (expense.payerId === user?.uid) {
+            setFriendOption('you_paid_equal');
+          } else {
+            setFriendOption('friend_paid_equal');
+          }
+        }
+        setEditLoading(false);
+      }
+    }).catch((err) => {
+      setError(err.message || 'Failed to load expense');
+      setEditLoading(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friends, groups]);
+
   const selectFriend = (f: User) => {
     setSelectedFriend(f);
     setSelectedGroup(null);
@@ -204,123 +289,228 @@ export default function AddExpensePage() {
       const date = new Date();
       const createdBy = user.uid;
 
-      if (isPersonal) {
-        // Personal expense — no split
-        const participantNames: { [uid: string]: string } = {
-          [user.uid]: user.displayName || 'You',
-        };
-        await createExpense(
-          expenseAmount,
-          category,
-          date,
-          user.uid,
-          [user.uid],
-          'equal',
-          createdBy,
-          undefined,
-          description.trim() || undefined,
-          undefined,
-          participantNames
-        );
-      } else if (selectedFriend) {
-        const friend = selectedFriend;
-        const participantsList = [user.uid, friend.uid];
-        let payerId: string;
-        let splitType: 'equal' | 'custom' = 'equal';
-        let splitAmounts: { [uid: string]: number } | undefined;
+      if (editId) {
+        // Edit mode — update existing expense in-place
+        if (isPersonal) {
+          const participantNames: { [uid: string]: string } = {
+            [user.uid]: user.displayName || 'You',
+          };
+          await updateExpense(editId, user.uid, {
+            amount: expenseAmount,
+            category,
+            description: description.trim() || undefined,
+            payerId: user.uid,
+            participants: [user.uid],
+            splitType: 'equal',
+            participantNames,
+          });
+        } else if (selectedFriend) {
+          const friend = selectedFriend;
+          const participantsList = [user.uid, friend.uid];
+          let editPayerId: string;
+          let editSplitType: 'equal' | 'custom' = 'equal';
+          let editSplitAmounts: { [uid: string]: number } | undefined;
 
-        switch (friendOption) {
-          case 'you_paid_equal':
-            payerId = user.uid;
-            splitType = 'equal';
-            break;
-          case 'you_owed_full':
-            payerId = user.uid;
-            splitType = 'custom';
-            splitAmounts = { [user.uid]: 0, [friend.uid]: expenseAmount };
-            break;
-          case 'friend_paid_equal':
-            payerId = friend.uid;
-            splitType = 'equal';
-            break;
-          case 'friend_owed_full':
-            payerId = friend.uid;
-            splitType = 'custom';
-            splitAmounts = { [user.uid]: expenseAmount, [friend.uid]: 0 };
-            break;
-          case 'custom':
-            payerId = friendPayerId;
-            splitType = 'custom';
-            splitAmounts = {
-              [user.uid]: parseFloat(friendCustomAmounts.you) || 0,
-              [friend.uid]: parseFloat(friendCustomAmounts.friend) || 0,
-            };
-            break;
-          default:
-            payerId = user.uid;
-            splitType = 'equal';
-        }
-
-        const participantNames: { [uid: string]: string } = {
-          [user.uid]: user.displayName || 'You',
-          [friend.uid]: friend.displayName || 'Unknown',
-        };
-
-        await createExpense(
-          expenseAmount,
-          category,
-          date,
-          payerId,
-          participantsList,
-          splitType,
-          createdBy,
-          undefined,
-          description.trim() || undefined,
-          splitAmounts,
-          participantNames
-        );
-      } else if (selectedGroup) {
-        const participantIds = participants.includes(payerId)
-          ? participants
-          : [payerId, ...participants];
-        let splitAmounts: { [uid: string]: number } | undefined;
-
-        if (effectiveSplitType === 'custom' && showCustom) {
-          splitAmounts = {};
-          for (const pid of participantIds) {
-            splitAmounts[pid] = parseFloat(customAmounts[pid] || '0') || 0;
+          switch (friendOption) {
+            case 'you_paid_equal':
+              editPayerId = user.uid;
+              break;
+            case 'you_owed_full':
+              editPayerId = user.uid;
+              editSplitType = 'custom';
+              editSplitAmounts = { [user.uid]: 0, [friend.uid]: expenseAmount };
+              break;
+            case 'friend_paid_equal':
+              editPayerId = friend.uid;
+              break;
+            case 'friend_owed_full':
+              editPayerId = friend.uid;
+              editSplitType = 'custom';
+              editSplitAmounts = { [user.uid]: expenseAmount, [friend.uid]: 0 };
+              break;
+            case 'custom':
+              editPayerId = friendPayerId;
+              editSplitType = 'custom';
+              editSplitAmounts = {
+                [user.uid]: parseFloat(friendCustomAmounts.you) || 0,
+                [friend.uid]: parseFloat(friendCustomAmounts.friend) || 0,
+              };
+              break;
+            default:
+              editPayerId = user.uid;
           }
-        }
 
-        const participantNames: { [uid: string]: string } = {};
-        for (const m of groupMembers) {
-          if (participantIds.includes(m.uid)) {
-            participantNames[m.uid] =
-              m.uid === user.uid ? (user.displayName || 'You') : m.displayName || 'Unknown';
+          const participantNames: { [uid: string]: string } = {
+            [user.uid]: user.displayName || 'You',
+            [friend.uid]: friend.displayName || 'Unknown',
+          };
+
+          await updateExpense(editId, user.uid, {
+            amount: expenseAmount,
+            category,
+            description: description.trim() || undefined,
+            payerId: editPayerId,
+            participants: participantsList,
+            splitType: editSplitType,
+            splitAmounts: editSplitAmounts,
+            participantNames,
+          });
+        } else if (selectedGroup) {
+          const participantIds = participants.includes(payerId)
+            ? participants
+            : [payerId, ...participants];
+          let splitAmounts: { [uid: string]: number } | undefined;
+
+          if (effectiveSplitType === 'custom' && showCustom) {
+            splitAmounts = {};
+            for (const pid of participantIds) {
+              splitAmounts[pid] = parseFloat(customAmounts[pid] || '0') || 0;
+            }
           }
+
+          const participantNames: { [uid: string]: string } = {};
+          for (const m of groupMembers) {
+            if (participantIds.includes(m.uid)) {
+              participantNames[m.uid] =
+                m.uid === user.uid ? (user.displayName || 'You') : m.displayName || 'Unknown';
+            }
+          }
+
+          await updateExpense(editId, user.uid, {
+            amount: expenseAmount,
+            category,
+            description: description.trim() || undefined,
+            payerId,
+            participants: participantIds,
+            splitType: effectiveSplitType,
+            splitAmounts,
+            participantNames,
+            groupId: selectedGroup.id,
+          });
         }
 
-        await createExpense(
-          expenseAmount,
-          category,
-          date,
-          payerId,
-          participantIds,
-          effectiveSplitType,
-          createdBy,
-          selectedGroup.id,
-          description.trim() || undefined,
-          splitAmounts,
-          participantNames
-        );
+        setSuccess('Expense updated!');
+      } else {
+        // Create mode — original logic
+        if (isPersonal) {
+          // Personal expense — no split
+          const participantNames: { [uid: string]: string } = {
+            [user.uid]: user.displayName || 'You',
+          };
+          await createExpense(
+            expenseAmount,
+            category,
+            date,
+            user.uid,
+            [user.uid],
+            'equal',
+            createdBy,
+            undefined,
+            description.trim() || undefined,
+            undefined,
+            participantNames
+          );
+        } else if (selectedFriend) {
+          const friend = selectedFriend;
+          const participantsList = [user.uid, friend.uid];
+          let payerId: string;
+          let splitType: 'equal' | 'custom' = 'equal';
+          let splitAmounts: { [uid: string]: number } | undefined;
+
+          switch (friendOption) {
+            case 'you_paid_equal':
+              payerId = user.uid;
+              splitType = 'equal';
+              break;
+            case 'you_owed_full':
+              payerId = user.uid;
+              splitType = 'custom';
+              splitAmounts = { [user.uid]: 0, [friend.uid]: expenseAmount };
+              break;
+            case 'friend_paid_equal':
+              payerId = friend.uid;
+              splitType = 'equal';
+              break;
+            case 'friend_owed_full':
+              payerId = friend.uid;
+              splitType = 'custom';
+              splitAmounts = { [user.uid]: expenseAmount, [friend.uid]: 0 };
+              break;
+            case 'custom':
+              payerId = friendPayerId;
+              splitType = 'custom';
+              splitAmounts = {
+                [user.uid]: parseFloat(friendCustomAmounts.you) || 0,
+                [friend.uid]: parseFloat(friendCustomAmounts.friend) || 0,
+              };
+              break;
+            default:
+              payerId = user.uid;
+              splitType = 'equal';
+          }
+
+          const participantNames: { [uid: string]: string } = {
+            [user.uid]: user.displayName || 'You',
+            [friend.uid]: friend.displayName || 'Unknown',
+          };
+
+          await createExpense(
+            expenseAmount,
+            category,
+            date,
+            payerId,
+            participantsList,
+            splitType,
+            createdBy,
+            undefined,
+            description.trim() || undefined,
+            splitAmounts,
+            participantNames
+          );
+        } else if (selectedGroup) {
+          const participantIds = participants.includes(payerId)
+            ? participants
+            : [payerId, ...participants];
+          let splitAmounts: { [uid: string]: number } | undefined;
+
+          if (effectiveSplitType === 'custom' && showCustom) {
+            splitAmounts = {};
+            for (const pid of participantIds) {
+              splitAmounts[pid] = parseFloat(customAmounts[pid] || '0') || 0;
+            }
+          }
+
+          const participantNames: { [uid: string]: string } = {};
+          for (const m of groupMembers) {
+            if (participantIds.includes(m.uid)) {
+              participantNames[m.uid] =
+                m.uid === user.uid ? (user.displayName || 'You') : m.displayName || 'Unknown';
+            }
+          }
+
+          await createExpense(
+            expenseAmount,
+            category,
+            date,
+            payerId,
+            participantIds,
+            effectiveSplitType,
+            createdBy,
+            selectedGroup.id,
+            description.trim() || undefined,
+            splitAmounts,
+            participantNames
+          );
+        }
+
+        setSuccess('Expense created!');
       }
 
-      setSuccess('Expense created!');
       setAmount('');
       setDescription('');
       setTimeout(() => router.push('/activity'), 1200);
     } catch (err: any) {
-      setError(err.message || 'Failed to create expense');
+      setError(err.message || 'Failed to save expense');
     } finally {
       setCreating(false);
     }
@@ -372,7 +562,7 @@ export default function AddExpensePage() {
           </svg>
           Back
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">Add Expense</h1>
+        <h1 className="text-lg font-semibold text-gray-900">{editId ? 'Edit Expense' : 'Add Expense'}</h1>
         <div className="w-14" />
       </div>
 
@@ -782,7 +972,7 @@ export default function AddExpensePage() {
             <div className="flex gap-3 pt-4">
               <button
                 type="button"
-                onClick={() => router.push('/friends')}
+                onClick={() => router.push(editId ? '/activity' : '/friends')}
                 className="flex-1 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition-transform"
               >
                 Cancel
@@ -792,7 +982,9 @@ export default function AddExpensePage() {
                 disabled={!canSubmit || creating}
                 className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 active:scale-95 transition-transform"
               >
-                {creating ? 'Creating…' : 'Create Expense'}
+                {creating
+                  ? (editId ? 'Saving\u2026' : 'Creating\u2026')
+                  : (editId ? 'Save Changes' : 'Create Expense')}
               </button>
             </div>
           </>

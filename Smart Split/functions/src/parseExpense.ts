@@ -21,7 +21,11 @@ interface TextInput {
     friendsList: { uid: string; displayName: string }[];
     groupsList?: { id: string; name: string }[];
     conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
-    context?: { timeOfDay: string; currency: string };
+    context?: {
+        timeOfDay: string;
+        currency: string;
+        recentPatterns?: { merchant: string; category: string; count: number }[];
+    };
 }
 
 type ParseExpenseInput = ReceiptInput | TextInput;
@@ -160,7 +164,11 @@ async function callGeminiWithText(
     friendsList: { uid: string; displayName: string }[],
     groupsList?: { id: string; name: string }[],
     conversationHistory?: { role: 'user' | 'assistant'; content: string }[],
-    context?: { timeOfDay: string; currency: string }
+    context?: {
+        timeOfDay: string;
+        currency: string;
+        recentPatterns?: { merchant: string; category: string; count: number }[];
+    }
 ): Promise<ParsedExpense> {
     const { VertexAI } = await import('@google-cloud/vertexai');
 
@@ -187,10 +195,19 @@ async function callGeminiWithText(
         ? `Current time of day: ${context.timeOfDay}. User's preferred currency: ${context.currency}.`
         : '';
 
+    // Build expense history patterns section
+    let patternsStr = '';
+    if (context?.recentPatterns && context.recentPatterns.length > 0) {
+        const patternLines = context.recentPatterns
+            .map(p => `- "${p.merchant}" => ${p.category} (used ${p.count}x)`)
+            .join('\n');
+        patternsStr = `\n=== USER'S EXPENSE HISTORY (LEARN FROM THIS) ===\nThe user has previously categorized these merchants as follows. Use the SAME category for matching merchants with HIGH confidence:\n${patternLines}\n`;
+    }
+
     const systemPrompt = `You are a smart, friendly AI expense assistant for a bill-splitting app called Smart Split. Your job is to help users log expenses quickly through natural language conversation.
 
 ${timeContext}
-
+${patternsStr}
 === USER'S FRIEND LIST ===
 ${friendListStr}
 

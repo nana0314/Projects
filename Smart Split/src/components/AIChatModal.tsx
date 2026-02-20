@@ -1,39 +1,48 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Dispatch, SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import { getUserFriends } from '@/src/utils/friends';
 import { getUserGroups } from '@/src/utils/groups';
 import { createExpense } from '@/src/utils/expenses';
-import { parseTextExpense, buildContext, formatExpenseSummary } from '@/src/utils/aiAssistant';
+import { parseTextExpense, buildContext, buildExpensePatterns, formatExpenseSummary } from '@/src/utils/aiAssistant';
 import { scanReceipt } from '@/src/utils/receiptScanner';
 import { User, Group, ExpenseCategory } from '@/src/types';
 import { ChatMessage, ParsedExpense } from '@/src/types/receipt';
 
 interface AIChatModalProps {
     onClose: () => void;
+    messages: ChatMessage[];
+    setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+    actionFeedback: { [msgId: string]: string };
+    setActionFeedback: Dispatch<SetStateAction<{ [msgId: string]: string }>>;
 }
 
-export default function AIChatModal({ onClose }: AIChatModalProps) {
+export default function AIChatModal({ onClose, messages, setMessages, actionFeedback, setActionFeedback }: AIChatModalProps) {
     const router = useRouter();
     const { user } = useAuth();
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [friends, setFriends] = useState<User[]>([]);
     const [groups, setGroups] = useState<Group[]>([]);
-    const [actionFeedback, setActionFeedback] = useState<{ [msgId: string]: string }>({});
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const expensePatternsRef = useRef<{ merchant: string; category: string; count: number }[]>([]);
 
-    // Load friends and groups on mount
+    // Load friends, groups, and expense patterns on mount
     useEffect(() => {
         if (!user) return;
-        Promise.all([getUserFriends(user.uid), getUserGroups(user.uid)])
-            .then(([f, g]) => {
+        Promise.all([
+            getUserFriends(user.uid),
+            getUserGroups(user.uid),
+            buildExpensePatterns(user.uid),
+        ])
+            .then(([f, g, patterns]) => {
                 setFriends(f || []);
                 setGroups(g || []);
+                // Store patterns in a ref so they're available when sending
+                expensePatternsRef.current = patterns;
             })
             .catch(console.error);
     }, [user]);
@@ -68,12 +77,15 @@ export default function AIChatModal({ onClose }: AIChatModalProps) {
             const groupsList = groups.map((g) => ({ id: g.id, name: g.name }));
             const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
+            const ctx = buildContext();
+            ctx.recentPatterns = expensePatternsRef.current;
+
             const result = await parseTextExpense(
                 userMessage,
                 friendsList,
                 groupsList,
                 history,
-                buildContext()
+                ctx
             );
 
             const botContent = result.message || formatExpenseSummary(result);

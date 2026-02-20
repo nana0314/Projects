@@ -72,6 +72,71 @@ export const createExpense = async (
 };
 
 /**
+ * Update an existing expense in-place (preserves original document ID, createdAt, and date)
+ */
+export const updateExpense = async (
+  expenseId: string,
+  userId: string,
+  updates: {
+    amount: number;
+    category: ExpenseCategory;
+    description?: string;
+    payerId: string;
+    participants: string[];
+    splitType: 'equal' | 'custom';
+    splitAmounts?: { [userId: string]: number };
+    participantNames?: { [userId: string]: string };
+    groupId?: string;
+  }
+): Promise<void> => {
+  const expenseRef = doc(db, 'expenses', expenseId);
+  const expenseDoc = await getDoc(expenseRef);
+
+  if (!expenseDoc.exists()) {
+    throw new Error('Expense not found');
+  }
+
+  const existing = expenseDoc.data() as Expense;
+
+  // Only allow update if user is the creator or payer
+  if (existing.createdBy !== userId && existing.payerId !== userId) {
+    throw new Error('You do not have permission to edit this expense');
+  }
+
+  // Validate custom split amounts
+  if (updates.splitType === 'custom' && updates.splitAmounts) {
+    const totalCustomAmount = Object.values(updates.splitAmounts).reduce((sum, amt) => sum + amt, 0);
+    if (Math.abs(totalCustomAmount - updates.amount) > 0.01) {
+      throw new Error('Custom split amounts must equal the total expense amount');
+    }
+  }
+
+  const updateData: any = {
+    amount: updates.amount,
+    category: updates.category,
+    payerId: updates.payerId,
+    participants: updates.participants,
+    splitType: updates.splitType,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (updates.description) {
+    updateData.description = updates.description;
+  }
+  if (updates.splitType === 'custom' && updates.splitAmounts) {
+    updateData.splitAmounts = updates.splitAmounts;
+  }
+  if (updates.participantNames) {
+    updateData.participantNames = updates.participantNames;
+  }
+  if (updates.groupId) {
+    updateData.groupId = updates.groupId;
+  }
+
+  await updateDoc(expenseRef, updateData);
+};
+
+/**
  * Get expense by ID
  */
 export const getExpenseById = async (expenseId: string): Promise<Expense | null> => {

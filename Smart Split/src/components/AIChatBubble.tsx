@@ -4,11 +4,16 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import AIChatModal from './AIChatModal';
+import { ChatMessage } from '@/src/types/receipt';
 
 export default function AIChatBubble() {
     const pathname = usePathname();
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+
+    // Lifted state — persists across modal open/close and page navigation
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [actionFeedback, setActionFeedback] = useState<{ [msgId: string]: string }>({});
 
     // Show on main pages with bottom nav, hide on add-expense and login
     const allowedPaths = ['/friends', '/groups', '/activity', '/dashboard', '/expenses'];
@@ -40,8 +45,16 @@ export default function AIChatBubble() {
                 <span className="text-2xl animate-pulse">{'\u{1F916}'}</span>
             </button>
 
-            {/* Chat modal */}
-            {isOpen && <AIChatModal onClose={() => setIsOpen(false)} />}
+            {/* Chat modal — always pass lifted state */}
+            {isOpen && (
+                <AIChatModal
+                    onClose={() => setIsOpen(false)}
+                    messages={messages}
+                    setMessages={setMessages}
+                    actionFeedback={actionFeedback}
+                    setActionFeedback={setActionFeedback}
+                />
+            )}
         </>
     );
 }
