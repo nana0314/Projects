@@ -74,7 +74,11 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
 
         try {
             const friendsList = friends.map((f) => ({ uid: f.uid, displayName: f.displayName }));
-            const groupsList = groups.map((g) => ({ id: g.id, name: g.name }));
+            const groupsList = groups.map((g) => ({
+                id: g.id,
+                name: g.name,
+                members: g.members?.map((m) => ({ uid: m.userId, displayName: m.displayName })) || [],
+            }));
             const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
             const ctx = buildContext();
@@ -174,7 +178,21 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
         if (parsed.merchant) params.set('description', parsed.merchant);
         if (parsed.total) params.set('amount', parsed.total.toString());
         if (parsed.category) params.set('category', parsed.category);
-        if (parsed.groupId) params.set('groupId', parsed.groupId);
+        if (parsed.groupId) {
+            params.set('groupId', parsed.groupId);
+            // If it's a group expense with no specific participants, select all members
+            const hasSpecificParticipants = parsed.participants && parsed.participants.some(p => p.matchedUid);
+            if (!hasSpecificParticipants) {
+                params.set('selectAll', 'true');
+            }
+        }
+        // Pass matched friend UID so the form can pre-select the friend
+        if (parsed.participants && parsed.participants.length > 0) {
+            const matchedFriend = parsed.participants.find(p => p.matchedUid);
+            if (matchedFriend?.matchedUid) {
+                params.set('friendId', matchedFriend.matchedUid);
+            }
+        }
         onClose();
         router.push(`/add-expense?${params.toString()}`);
     };

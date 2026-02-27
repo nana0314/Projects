@@ -15,8 +15,8 @@ export default function AIChatBubble() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [actionFeedback, setActionFeedback] = useState<{ [msgId: string]: string }>({});
 
-    // Show on main pages with bottom nav, hide on add-expense and login
-    const allowedPaths = ['/friends', '/groups', '/activity', '/dashboard', '/expenses'];
+    // Show on dashboard, friends, and groups pages only
+    const allowedPaths = ['/dashboard', '/friends', '/groups'];
     const isAllowed =
         pathname && allowedPaths.some((path) => pathname === path || pathname.startsWith(path + '/'));
 

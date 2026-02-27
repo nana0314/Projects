@@ -5,6 +5,8 @@ import PWARegister from "@/src/components/PWARegister";
 import BottomNav from "@/src/components/BottomNav";
 import FloatingAddExpense from "@/src/components/FloatingAddExpense";
 import AIChatBubble from "@/src/components/AIChatBubble";
+import FloatingThemeToggle from "@/src/components/FloatingThemeToggle";
+import GlobalLoadingBar from "@/src/components/GlobalLoadingBar";
 import { ThemeProvider } from "@/src/context/ThemeContext";
 
 export const viewport: Viewport = {
@@ -53,8 +55,10 @@ export default function RootLayout({
             {children}
             <Analytics />
             <SpeedInsights />
+            <GlobalLoadingBar />
             <BottomNav />
             <FloatingAddExpense />
+            <FloatingThemeToggle />
             <AIChatBubble />
             <PWARegister />
           </ThemeProvider>

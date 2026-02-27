@@ -49,6 +49,7 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
     'Utilities': '#C9CBCF',
     'Shopping': '#7BC043',
     'Travel': '#F37735',
+    'Personal': '#7EC8E3',
     'Other': '#8B8B8B',
 };
 

@@ -19,7 +19,7 @@ interface TextInput {
     type: 'text';
     message: string;
     friendsList: { uid: string; displayName: string }[];
-    groupsList?: { id: string; name: string }[];
+    groupsList?: { id: string; name: string; members?: { uid: string; displayName: string }[] }[];
     conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
     context?: {
         timeOfDay: string;
@@ -162,7 +162,7 @@ Rules:
 async function callGeminiWithText(
     message: string,
     friendsList: { uid: string; displayName: string }[],
-    groupsList?: { id: string; name: string }[],
+    groupsList?: { id: string; name: string; members?: { uid: string; displayName: string }[] }[],
     conversationHistory?: { role: 'user' | 'assistant'; content: string }[],
     context?: {
         timeOfDay: string;
@@ -188,7 +188,12 @@ async function callGeminiWithText(
         : '(no friends added yet)';
 
     const groupListStr = groupsList && groupsList.length > 0
-        ? groupsList.map(g => `- "${g.name}" (id: ${g.id})`).join('\n')
+        ? groupsList.map(g => {
+            const memberStr = g.members && g.members.length > 0
+                ? `\n    Members: ${g.members.map(m => `"${m.displayName}" (uid: ${m.uid})`).join(', ')}`
+                : '';
+            return `- "${g.name}" (id: ${g.id})${memberStr}`;
+        }).join('\n')
         : '(no groups)';
 
     const timeContext = context
@@ -253,8 +258,17 @@ Parse the user's message to extract expense details. You MUST return ONLY a vali
 
 === CRITICAL RULES FOR GROUP MATCHING ===
 1. When the user mentions a group, search the group list above for matches.
-2. If a group name matches, set groupId and groupName.
-3. If the mentioned group doesn't exist, set needsFollowUp to true and tell the user which groups are available.
+2. Match groups by EITHER name OR id. For example, "group 124" or "group ABC1" should match a group with id "124" or "ABC1". Use CASE-INSENSITIVE matching for group IDs.
+3. If a group name or id matches, set groupId and groupName.
+4. If the mentioned group doesn't exist, set needsFollowUp to true and tell the user which groups are available.
+5. CRITICAL: When the user says "everyone", "all", "the group", "whole group", or "split with everyone in [group name/id]":
+   - This means a GROUP expense with ALL members of that group as participants.
+   - Set groupId and groupName to the matched group.
+   - Set splitType to "equal".
+   - You MUST populate the participants array with ALL group members listed in the group's member list above. For each member, set inputName to "everyone", matchedUid to their uid, matchedName to their displayName, and confidence to 1.0.
+   - Your message should confirm: "Got it! I'll split this with everyone in [group name]" and list the members.
+6. If the user says "everyone" or "all" WITHOUT specifying a group, and they only have ONE group, assume that group. If they have multiple groups, set needsFollowUp to true and ask which group.
+7. When matching "everyone" to a group, ALWAYS include ALL members from that group's member list as participants — do NOT leave the participants array empty.
 
 === CRITICAL RULES FOR FOLLOW-UP ===
 1. If the AMOUNT is missing, ALWAYS set needsFollowUp to true and ask for the amount.
@@ -272,6 +286,8 @@ Parse the user's message to extract expense details. You MUST return ONLY a vali
 - "Pizzahut 45, split with John, Mary" — explicit split
 - "Coffee 12.50" — personal expense (no split)
 - "Uber 30, for Weekend Trip group" — group expense
+- "Coffee 8.50, split with everyone in 124" — group expense with all members
+- "Dinner 120, split with all in House group" — group expense with all members
 - "John owes me 20 for lunch" — directional debt (John is participant)
 - "Split dinner 120 equally between me, John and Mary"
 - "I paid 50 for groceries, John and I split it"

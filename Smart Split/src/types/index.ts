@@ -46,7 +46,7 @@ export interface Group {
   updatedAt: Timestamp;
 }
 
-export type ExpenseCategory = 'Food' | 'Rental' | 'Groceries' | 'Entertainment' | 'Beverage' | 'Transportation' | 'Utilities' | 'Shopping' | 'Travel' | 'Other';
+export type ExpenseCategory = 'Food' | 'Rental' | 'Groceries' | 'Entertainment' | 'Beverage' | 'Transportation' | 'Utilities' | 'Shopping' | 'Travel' | 'Personal' | 'Other';
 
 export interface Expense {
   id: string;

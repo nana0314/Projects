@@ -10,6 +10,7 @@ interface FriendInfo {
 interface GroupInfo {
     id: string;
     name: string;
+    members?: { uid: string; displayName: string }[];
 }
 
 interface ConversationMessage {

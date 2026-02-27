@@ -1,9 +1,17 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useTheme } from '@/src/context/ThemeContext';
 
 export default function FloatingThemeToggle() {
     const { theme, toggleTheme } = useTheme();
+    const pathname = usePathname();
+
+    // Only show on dashboard, friends, and groups pages
+    const allowedPaths = ['/dashboard', '/friends', '/groups'];
+    const isAllowed = pathname && allowedPaths.some((path) => pathname === path || pathname.startsWith(path + '/'));
+
+    if (!isAllowed) return null;
 
     return (
         <button
@@ -36,3 +44,4 @@ export default function FloatingThemeToggle() {
         </button>
     );
 }
+

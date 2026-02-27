@@ -68,7 +68,14 @@ export default function AddExpensePage() {
       getGroupMembers(selectedGroup.id).then((members) => {
         setGroupMembers(members);
         setPayerId(user.uid);
-        setParticipants([user.uid]);
+        // Check if we should auto-select all members (from AI chat "everyone" flow)
+        const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const shouldSelectAll = params?.get('selectAll') === 'true';
+        if (shouldSelectAll) {
+          setParticipants(members.map(m => m.uid));
+        } else {
+          setParticipants([user.uid]);
+        }
         setCustomAmounts({});
         setShowCustom(false);
         setSplitType('equal');
@@ -104,7 +111,7 @@ export default function AddExpensePage() {
     }
   };
 
-  // Handle pre-selection from URL params (e.g., from group details page or AI chat)
+  // Handle pre-selection of group from URL params (e.g., from group details page)
   useEffect(() => {
     if (typeof window !== 'undefined' && groups.length > 0) {
       const params = new URLSearchParams(window.location.search);
@@ -115,16 +122,38 @@ export default function AddExpensePage() {
           selectGroup(group);
         }
       }
-      // Prefill from AI chat assistant
-      const prefillDesc = params.get('description');
-      const prefillAmount = params.get('amount');
-      const prefillCategory = params.get('category');
-      if (prefillDesc) setDescription(prefillDesc);
-      if (prefillAmount) setAmount(prefillAmount);
-      if (prefillCategory) setCategory(prefillCategory as ExpenseCategory);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups]);
+
+  // Handle pre-fill from AI chat assistant (description, amount, category, friendId)
+  const [prefilled, setPrefilled] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading || prefilled) return;
+    const params = new URLSearchParams(window.location.search);
+    const prefillDesc = params.get('description');
+    const prefillAmount = params.get('amount');
+    const prefillCategory = params.get('category');
+    const prefillFriendId = params.get('friendId');
+    const hasGroupId = params.get('groupId');
+    if (prefillDesc || prefillAmount || prefillCategory || prefillFriendId) {
+      if (prefillDesc) setDescription(prefillDesc);
+      if (prefillAmount) setAmount(prefillAmount);
+      if (prefillCategory) setCategory(prefillCategory as ExpenseCategory);
+      // Pre-select friend if friendId is provided
+      if (prefillFriendId && friends.length > 0) {
+        const friend = friends.find(f => f.uid === prefillFriendId);
+        if (friend) {
+          selectFriend(friend);
+        }
+      } else if (!hasGroupId && !prefillFriendId) {
+        // No group or friend specified, default to personal
+        setIsPersonal(true);
+      }
+      setPrefilled(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, prefilled, friends]);
 
   // Handle edit mode — load existing expense and prefill form
   useEffect(() => {
@@ -543,42 +572,42 @@ export default function AddExpensePage() {
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Scanning overlay */}
       {scanning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-xl">
-            <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-900 font-medium">Scanning receipt...</p>
-            <p className="text-gray-500 text-sm">This may take a few seconds</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-4 shadow-2xl animate-scale-in">
+            <div className="w-14 h-14 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-900 font-semibold text-lg">Scanning receipt...</p>
+            <p className="text-gray-500 text-sm">AI is reading your receipt</p>
           </div>
         </div>
       )}
 
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      {/* Modern gradient header */}
+      <div className="sticky top-0 z-10 bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500 px-4 py-4 flex items-center justify-between shadow-lg">
         <Link
-          href="/friends"
-          className="text-gray-600 hover:text-gray-900 flex items-center gap-1 active:scale-95 transition-transform"
+          href={editId ? '/activity' : '/friends'}
+          className="text-white/90 hover:text-white flex items-center gap-1 btn-bounce transition-all"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">{editId ? 'Edit Expense' : 'Add Expense'}</h1>
+        <h1 className="text-lg font-bold text-white tracking-wide">
+          {editId ? '\u270F\uFE0F Edit Expense' : '\u2728 New Expense'}
+        </h1>
         <div className="w-14" />
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-xl mx-auto">
-        {/* Scan Receipt button */}
+        {/* Scan Receipt — glassmorphism card */}
         <button
           type="button"
           onClick={() => receiptInputRef.current?.click()}
           disabled={scanning}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-700 font-medium hover:bg-indigo-100 transition-colors active:scale-[0.98] disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 px-5 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-700 font-semibold hover:from-indigo-100 hover:to-purple-100 transition-all btn-bounce disabled:opacity-50 card-lift"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          {"\u{1F4F8}"} Scan Receipt
+          <span className="text-2xl animate-emoji-pop">📸</span>
+          Scan Receipt
         </button>
         <input
           type="file"
@@ -595,32 +624,38 @@ export default function AddExpensePage() {
           }}
         />
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm animate-slide-up flex items-center gap-2">
+            <span>\u26A0\uFE0F</span> {error}
           </div>
         )}
         {success && (
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-            {success}
+          <div className="p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 text-sm animate-slide-up flex items-center gap-2">
+            <span className="animate-emoji-pop">\u2705</span> {success}
           </div>
         )}
 
         {/* Step 1: Choose friend, group, or personal */}
-        <section>
-          <h2 className="text-sm font-medium text-gray-700 mb-2">Who is this expense for?</h2>
+        <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-stagger-in card-lift" style={{ animationDelay: '0.05s' }}>
+          <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">1</span>
+            Who is this expense for?
+          </h2>
           {loading ? (
-            <p className="text-gray-500 text-sm">Loading…</p>
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+              Loading your people...
+            </div>
           ) : (
             <div className="space-y-4">
               {/* Just Me (Personal) */}
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Personal</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 font-semibold">Personal</p>
                 <button
                   type="button"
                   onClick={selectPersonal}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${isPersonal
-                    ? 'bg-green-600 text-white'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all chip-animate ${isPersonal
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md shadow-green-200 animate-pulse-ring'
+                    : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
                     }`}
                 >
                   🧑 Just Me
@@ -629,18 +664,26 @@ export default function AddExpensePage() {
 
               {friends.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Friends</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 font-semibold">Friends</p>
                   <div className="flex flex-wrap gap-2">
-                    {friends.map((f) => (
+                    {friends.map((f, i) => (
                       <button
                         key={f.uid}
                         type="button"
                         onClick={() => selectFriend(f)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${selectedFriend?.uid === f.uid
-                          ? 'bg-green-600 text-white'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        style={{ animationDelay: `${i * 0.05}s` }}
+                        className={`px-4 py-2.5 rounded-full text-sm font-semibold transition-all chip-animate animate-stagger-in flex items-center gap-2 ${selectedFriend?.uid === f.uid
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md shadow-green-200 animate-pulse-ring'
+                          : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
                           }`}
                       >
+                        {f.photoURL ? (
+                          <img src={f.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
+                        ) : (
+                          <span className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-[10px] text-gray-600 font-bold">
+                            {f.displayName?.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                         {f.displayName}
                       </button>
                     ))}
@@ -649,34 +692,35 @@ export default function AddExpensePage() {
               )}
               {groups.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Groups</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-2 font-semibold">Groups</p>
                   <div className="flex flex-wrap gap-2">
-                    {groups.map((g) => (
+                    {groups.map((g, i) => (
                       <button
                         key={g.id}
                         type="button"
                         onClick={() => selectGroup(g)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${selectedGroup?.id === g.id
-                          ? 'bg-green-600 text-white'
-                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        style={{ animationDelay: `${i * 0.05}s` }}
+                        className={`px-4 py-2.5 rounded-full text-sm font-semibold transition-all chip-animate animate-stagger-in flex items-center gap-2 ${selectedGroup?.id === g.id
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-200 animate-pulse-ring'
+                          : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
                           }`}
                       >
-                        {g.name}
+                        👥 {g.name}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
               {!loading && friends.length === 0 && groups.length === 0 && !isPersonal && (
-                <p className="text-gray-500 text-sm">Add friends or groups first, or use &quot;Just Me&quot; for personal expenses.</p>
+                <p className="text-gray-400 text-sm text-center py-2">Add friends or groups first, or tap &quot;Just Me&quot; for personal expenses.</p>
               )}
               {(selectedFriend || selectedGroup || isPersonal) && (
                 <button
                   type="button"
                   onClick={clearSelection}
-                  className="text-sm text-gray-500 underline hover:text-gray-700"
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 btn-bounce"
                 >
-                  Clear selection
+                  ✕ Clear selection
                 </button>
               )}
             </div>
@@ -685,117 +729,114 @@ export default function AddExpensePage() {
 
         {!(selectedFriend || selectedGroup || isPersonal) ? null : (
           <>
-            {/* Description (optional) */}
-            <section>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description (optional)
+            {/* Description */}
+            <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-reveal" style={{ animationDelay: '0.1s' }}>
+              <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">2</span>
+                What's it for?
               </label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g. Dinner at Pizza Hut"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-400 focus:border-green-400 transition-all text-base bg-gray-50 hover:bg-white"
               />
             </section>
 
-            {/* Category */}
-            <section>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              >
-                <option value="Food">Food</option>
-                <option value="Rental">Rental</option>
-                <option value="Groceries">Groceries</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Beverage">Beverage</option>
-                <option value="Transportation">Transportation</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Travel">Travel</option>
-                <option value="Other">Other</option>
-              </select>
+            {/* Category — emoji chip picker */}
+            <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-reveal" style={{ animationDelay: '0.15s' }}>
+              <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">3</span>
+                Category
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'Food', emoji: '\u{1F354}', color: 'from-orange-400 to-amber-400 shadow-orange-200' },
+                  { value: 'Rental', emoji: '\u{1F3E0}', color: 'from-green-500 to-emerald-500 shadow-green-200' },
+                  { value: 'Groceries', emoji: '\u{1F6D2}', color: 'from-lime-500 to-green-500 shadow-lime-200' },
+                  { value: 'Entertainment', emoji: '\u{1F3AC}', color: 'from-sky-400 to-blue-400 shadow-sky-200' },
+                  { value: 'Beverage', emoji: '\u2615', color: 'from-amber-500 to-yellow-500 shadow-amber-200' },
+                  { value: 'Transportation', emoji: '\u{1F697}', color: 'from-violet-500 to-purple-500 shadow-violet-200' },
+                  { value: 'Utilities', emoji: '\u{1F4A1}', color: 'from-yellow-400 to-orange-400 shadow-yellow-200' },
+                  { value: 'Shopping', emoji: '\u{1F6CD}\uFE0F', color: 'from-pink-400 to-rose-400 shadow-pink-200' },
+                  { value: 'Travel', emoji: '\u2708\uFE0F', color: 'from-cyan-500 to-teal-500 shadow-cyan-200' },
+                  { value: 'Personal', emoji: '\u{1F9D1}', color: 'from-blue-300 to-indigo-300 shadow-blue-200' },
+                  { value: 'Other', emoji: '\u{1F4E6}', color: 'from-gray-400 to-slate-400 shadow-gray-200' },
+                ].map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setCategory(cat.value as ExpenseCategory)}
+                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all chip-animate flex items-center gap-1.5 ${category === cat.value
+                      ? `bg-gradient-to-r ${cat.color} text-white shadow-md`
+                      : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
+                      }`}
+                  >
+                    <span className="text-base">{cat.emoji}</span>
+                    {cat.value}
+                  </button>
+                ))}
+              </div>
             </section>
 
-            {/* Amount */}
-            <section>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount * ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              />
+            {/* Amount — large prominent input */}
+            <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-reveal" style={{ animationDelay: '0.2s' }}>
+              <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">4</span>
+                Amount
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                  placeholder="0.00"
+                  className="w-full pl-10 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-400 focus:border-green-400 transition-all text-2xl font-bold bg-gray-50 hover:bg-white"
+                />
+              </div>
             </section>
 
             {/* Friend: 4 options */}
             {selectedFriend && (
-              <section>
-                <h2 className="text-sm font-medium text-gray-700 mb-2">Who paid & how to split</h2>
+              <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-reveal" style={{ animationDelay: '0.25s' }}>
+                <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-bold">5</span>
+                  Who paid & how to split
+                </h2>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="friendOption"
-                      checked={friendOption === 'you_paid_equal'}
-                      onChange={() => setFriendOption('you_paid_equal')}
-                      className="text-green-600"
-                    />
-                    <span className="text-gray-900">You paid, split equally</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="friendOption"
-                      checked={friendOption === 'you_owed_full'}
-                      onChange={() => setFriendOption('you_owed_full')}
-                      className="text-green-600"
-                    />
-                    <span className="text-gray-900">You are owed the full amount</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="friendOption"
-                      checked={friendOption === 'friend_paid_equal'}
-                      onChange={() => setFriendOption('friend_paid_equal')}
-                      className="text-green-600"
-                    />
-                    <span className="text-gray-900">
-                      {selectedFriend.displayName} paid, split equally
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="friendOption"
-                      checked={friendOption === 'friend_owed_full'}
-                      onChange={() => setFriendOption('friend_owed_full')}
-                      className="text-green-600"
-                    />
-                    <span className="text-gray-900">
-                      {selectedFriend.displayName} is owed the full amount
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="friendOption"
-                      checked={friendOption === 'custom'}
-                      onChange={() => {
-                        setFriendOption('custom');
-                        setFriendPayerId(user?.uid || '');
-                      }}
-                      className="text-green-600"
-                    />
-                    <span className="text-gray-900">Custom amount</span>
-                  </label>
+                  {[
+                    { key: 'you_paid_equal', label: 'You paid, split equally', emoji: '\u{1F91D}' },
+                    { key: 'you_owed_full', label: 'You are owed the full amount', emoji: '\u{1F4B0}' },
+                    { key: 'friend_paid_equal', label: `${selectedFriend.displayName} paid, split equally`, emoji: '\u{1F465}' },
+                    { key: 'friend_owed_full', label: `${selectedFriend.displayName} is owed the full amount`, emoji: '\u{1F4B8}' },
+                    { key: 'custom', label: 'Custom amount', emoji: '\u2702\uFE0F' },
+                  ].map((opt) => (
+                    <label
+                      key={opt.key}
+                      className={`flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition-all chip-animate ${friendOption === opt.key
+                        ? 'bg-green-50 border-2 border-green-400 shadow-sm'
+                        : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                    >
+                      <input
+                        type="radio"
+                        name="friendOption"
+                        checked={friendOption === opt.key}
+                        onChange={() => {
+                          setFriendOption(opt.key as any);
+                          if (opt.key === 'custom') setFriendPayerId(user?.uid || '');
+                        }}
+                        className="text-green-600 w-4 h-4"
+                      />
+                      <span className="text-lg">{opt.emoji}</span>
+                      <span className="text-gray-900 text-sm font-medium">{opt.label}</span>
+                    </label>
+                  ))}
                 </div>
 
                 {/* Custom amount UI for friend */}
@@ -857,15 +898,19 @@ export default function AddExpensePage() {
 
             {/* Group: paid by, participants, equal/custom */}
             {selectedGroup && (
-              <section className="space-y-4">
+              <section className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-reveal space-y-4" style={{ animationDelay: '0.25s' }}>
+                <h2 className="text-sm font-bold text-gray-800 mb-1 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">5</span>
+                  Group Split Details
+                </h2>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Paid by (Who?)
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    💳 Paid by
                   </label>
                   <select
                     value={payerId}
                     onChange={(e) => setPayerId(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 hover:bg-white transition-all"
                   >
                     {groupMembers.map((m) => (
                       <option key={m.uid} value={m.uid}>
@@ -876,8 +921,8 @@ export default function AddExpensePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Participants (who is involved, at least 2)
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    👥 Participants (who is involved, at least 2)
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {groupMembers.map((m) => (
@@ -885,9 +930,9 @@ export default function AddExpensePage() {
                         key={m.uid}
                         type="button"
                         onClick={() => toggleParticipant(m.uid)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${participants.includes(m.uid)
-                          ? 'bg-green-600 text-white'
-                          : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+                        className={`px-4 py-2.5 rounded-full text-sm font-semibold transition-all chip-animate ${participants.includes(m.uid)
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-200'
+                          : 'bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100'
                           }`}
                       >
                         {m.uid === user.uid ? 'You' : m.displayName}
@@ -899,10 +944,10 @@ export default function AddExpensePage() {
                 {participants.length > 0 && (
                   <>
                     {!showCustom ? (
-                      <div className="p-4 bg-white border border-gray-200 rounded-lg">
-                        <p className="text-sm text-gray-700 mb-1">Split equally</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          Everyone pays ${amountPerPerson.toFixed(2)}
+                      <div className="p-4 bg-white rounded-xl border-2 border-blue-200 shadow-sm">
+                        <p className="text-sm font-medium text-gray-700 mb-1">Split equally</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          ${amountPerPerson.toFixed(2)} <span className="text-sm font-normal text-gray-500">per person</span>
                         </p>
                         <button
                           type="button"
@@ -919,17 +964,17 @@ export default function AddExpensePage() {
                             });
                             setCustomAmounts(initial);
                           }}
-                          className="mt-3 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition-transform"
+                          className="mt-3 px-4 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-sm font-semibold text-blue-700 hover:bg-blue-100 btn-bounce transition-all"
                         >
-                          Custom
+                          ✂️ Custom Split
                         </button>
                       </div>
                     ) : (
-                      <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-3">
-                        <p className="text-sm font-medium text-gray-700">Custom amounts</p>
+                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3 animate-reveal">
+                        <p className="text-sm font-semibold text-gray-700">✂️ Custom amounts</p>
                         {participantsList.map((m) => (
                           <div key={m.uid} className="flex items-center justify-between gap-2">
-                            <span className="text-sm text-gray-700">
+                            <span className="text-sm text-gray-700 font-medium">
                               {m.uid === user.uid ? 'You' : m.displayName}:
                             </span>
                             <input
@@ -944,7 +989,7 @@ export default function AddExpensePage() {
                                 }))
                               }
                               placeholder="0.00"
-                              className="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                              className="w-28 px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 bg-white"
                             />
                           </div>
                         ))}
@@ -958,9 +1003,9 @@ export default function AddExpensePage() {
                             setSplitType('equal');
                             setCustomAmounts({});
                           }}
-                          className="text-sm text-gray-600 underline hover:text-gray-800"
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 btn-bounce"
                         >
-                          Back to equal split
+                          ← Back to equal split
                         </button>
                       </div>
                     )}
@@ -969,22 +1014,22 @@ export default function AddExpensePage() {
               </section>
             )}
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-6 pb-2">
               <button
                 type="button"
                 onClick={() => router.push(editId ? '/activity' : '/friends')}
-                className="flex-1 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 active:scale-95 transition-transform"
+                className="flex-1 py-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 btn-bounce transition-all"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit || creating}
-                className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 active:scale-95 transition-transform"
+                className="flex-1 py-3 btn-shine text-white rounded-xl font-semibold shadow-lg shadow-green-200 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none btn-bounce transition-all text-base"
               >
                 {creating
-                  ? (editId ? 'Saving\u2026' : 'Creating\u2026')
-                  : (editId ? 'Save Changes' : 'Create Expense')}
+                  ? (editId ? '✨ Saving…' : '✨ Creating…')
+                  : (editId ? '💾 Save Changes' : '🚀 Create Expense')}
               </button>
             </div>
           </>

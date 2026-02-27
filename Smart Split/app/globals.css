@@ -411,3 +411,165 @@ textarea::placeholder {
 .animate-scale-in {
   animation: scale-in 0.2s ease-out;
 }
+
+/* ========================================
+   BUTTON & INTERACTION ANIMATIONS
+   ======================================== */
+
+/* Bounce click effect for buttons */
+@keyframes bounce-click {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.92); }
+  60% { transform: scale(1.04); }
+  80% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.btn-bounce:active {
+  animation: bounce-click 0.35s ease-out;
+}
+
+/* Stagger fade-in for list items */
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-stagger-in {
+  animation: stagger-in 0.35s ease-out both;
+}
+
+/* Pulse ring for active selections */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 0.6s ease-out;
+}
+
+/* Gradient shine effect for primary buttons */
+@keyframes gradient-shine {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+.btn-shine {
+  background-size: 200% auto;
+  background-image: linear-gradient(
+    90deg,
+    #16a34a 0%,
+    #22c55e 25%,
+    #4ade80 50%,
+    #22c55e 75%,
+    #16a34a 100%
+  );
+  transition: all 0.3s ease;
+}
+
+.btn-shine:hover:not(:disabled) {
+  animation: gradient-shine 1.5s linear infinite;
+}
+
+/* Section reveal animation */
+@keyframes reveal-section {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    max-height: 800px;
+    transform: translateY(0);
+  }
+}
+
+.animate-reveal {
+  animation: reveal-section 0.4s ease-out both;
+  overflow: hidden;
+}
+
+/* Emoji pop animation */
+@keyframes emoji-pop {
+  0% { transform: scale(0) rotate(-20deg); }
+  50% { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-emoji-pop {
+  animation: emoji-pop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  display: inline-block;
+}
+
+/* Floating label animation */
+@keyframes float-up {
+  from { 
+    opacity: 0;
+    transform: translateY(8px); 
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0); 
+  }
+}
+
+.animate-float-up {
+  animation: float-up 0.3s ease-out both;
+}
+
+/* Success checkmark animation */
+@keyframes checkmark-draw {
+  0% { stroke-dashoffset: 50; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-checkmark path {
+  stroke-dasharray: 50;
+  animation: checkmark-draw 0.4s ease-out forwards;
+}
+
+/* Card hover lift */
+.card-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Chip selection animation */
+@keyframes chip-select {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.chip-animate {
+  transition: all 0.2s ease;
+}
+
+.chip-animate:active {
+  animation: chip-select 0.25s ease-out;
+}
+
+/* Dark mode for new animations */
+.dark .btn-shine {
+  background-image: linear-gradient(
+    90deg,
+    #15803d 0%,
+    #16a34a 25%,
+    #22c55e 50%,
+    #16a34a 75%,
+    #15803d 100%
+  );
+}

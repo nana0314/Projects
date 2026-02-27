@@ -33,7 +33,6 @@ import ActiveGroupsChart from '@/src/components/dashboard/ActiveGroupsChart';
 import InsightsCard from '@/src/components/dashboard/InsightsCard';
 import OutstandingBalances from '@/src/components/dashboard/OutstandingBalances';
 import { PageSkeleton, DashboardSkeleton } from '@/src/components/SkeletonLoader';
-import FloatingThemeToggle from '@/src/components/FloatingThemeToggle';
 
 interface GroupWithAnalytics {
     group: Group;
@@ -352,7 +351,6 @@ export default function Dashboard() {
                     </div>
                 )}
             </main>
-            <FloatingThemeToggle />
         </div>
     );
 }
