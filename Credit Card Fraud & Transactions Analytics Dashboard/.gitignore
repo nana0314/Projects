@@ -1,0 +1,16 @@
+# Large data files
+*.csv
+
+# Power BI temp files
+*.pbit
+*.pbix.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
