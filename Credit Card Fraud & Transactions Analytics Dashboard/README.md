@@ -106,6 +106,7 @@ All relationships are **one-to-many** from dimension tables to the fact table wi
 | **Fraud by Hour** | Clustered Column Chart | `[Fraud Count]` by TransactionHour | Time-of-day fraud distribution — shows peak fraud hours for targeted monitoring |
 | **Fraud Geographic Hotspots** | Map / Shape Map | `[Fraud Count]` by State | Geographic concentration of fraud — identifies states requiring increased fraud prevention |
 | **Fraud Trend with Forecast** | Line Chart + Forecast | `[Fraud Count]` by Month | Monthly fraud trend line with 3-month forecast — projects future fraud volume for resource planning |
+<img width="1932" height="883" alt="image" src="https://github.com/user-attachments/assets/7c000387-62df-4798-b744-af4fe991e8ab" />
 
 ---
 
@@ -124,6 +125,7 @@ All relationships are **one-to-many** from dimension tables to the fact table wi
 | **Monthly Spend Trend** | Area Chart | `[Total Spend]` by MonthName | Spending trajectory over time — highlights seasonal peaks (holidays, back-to-school, etc.) |
 | **Top 10 Merchants** | Clustered Bar Chart | `[Total Spend]` by MerchantClean (Top 10) | Highest-grossing merchants — identifies key business partners or potential monopoly risks |
 | **Day of Week Spending** | Clustered Column Chart | `[Total Spend]` by DayOfWeek | Spending distribution across weekdays — useful for timing promotions and staffing |
+<img width="1425" height="922" alt="image" src="https://github.com/user-attachments/assets/389b0037-64ba-4073-9d2b-a7040c945d2c" />
 
 ---
 
@@ -142,6 +144,7 @@ All relationships are **one-to-many** from dimension tables to the fact table wi
 | **Top 10 States by Spend** | Clustered Bar Chart | `[Total Spend]` by State (Top 10) | Geographic spending hotspots — identifies highest-revenue regions |
 | **Top 10 Jobs by Spend** | Clustered Bar Chart | `[Total Spend]` by Job (Top 10) | Occupation-based spending — reveals which professions are the highest spenders |
 | **Transactions Per Customer** | Card | `[Transactions Per Customer]` | Average engagement level — higher values indicate repeat/loyal customers |
+<img width="1901" height="876" alt="image" src="https://github.com/user-attachments/assets/8ef4c555-5633-4e62-9461-0fb4366a222e" />
 
 ---
 
@@ -206,30 +209,5 @@ All relationships are **one-to-many** from dimension tables to the fact table wi
 
 The dataset is publicly available on Kaggle:
 [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection)
-
----
-
-## How to Use
-
-1. **Download** the `.pbix` file from this repository
-2. **Download** the dataset from the Kaggle link above
-3. Open the `.pbix` file in **Power BI Desktop**
-4. If prompted, update the data source path to point to your local CSV file:
-   - Go to **Home → Transform Data → Data Source Settings → Change Source**
-5. Click **Refresh** to load the data
-6. Explore the 4 dashboard pages using the tabs at the bottom
-
-### Requirements
-
-- [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (free)
-- ~500MB RAM for the 1.3M row dataset
-
----
-
-## 📬 Contact
-
-**Yeoh Zi Song**
-
----
 
 *Built as a data analytics portfolio project demonstrating Power BI, DAX, data modeling, and business intelligence skills.*
