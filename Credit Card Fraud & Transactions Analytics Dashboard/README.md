@@ -84,6 +84,7 @@ All relationships are **one-to-many** from dimension tables to the fact table wi
 | **Spend by Category** | Donut Chart | `[Total Spend]` by CategoryLabel | Breakdown of where customers are spending — reveals dominant categories |
 | **YoY Spend Growth** | Card | `[YoY Spend Growth]` | Year-over-year percentage change in spending — indicates business growth or contraction |
 | **Top 5 Categories** | Table | CategoryLabel, Total Spend, Fraud Rate | Summary table showing highest-spend categories alongside their fraud rates — highlights risk in high-volume areas |
+<img width="1952" height="1094" alt="image" src="https://github.com/user-attachments/assets/4e5a33ff-2eeb-4f60-a967-5aacaa74bbbd" />
 
 ---
 
