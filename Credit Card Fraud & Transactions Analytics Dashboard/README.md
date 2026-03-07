@@ -1,4 +1,5 @@
 # 💳 Credit Card Transaction Intelligence & Fraud Analytics Dashboard
+*Built as a data analytics portfolio project demonstrating Power BI, DAX, data modeling, and business intelligence skills.*
 
 A 4-page Power BI dashboard analyzing **1.3 million credit card transactions** using a star schema data model. The dashboard covers executive KPIs, fraud intelligence, spending behavior analysis, and customer segmentation — powered by **20+ custom DAX measures** including time intelligence and statistical functions.
 
@@ -199,15 +200,5 @@ All relationships are **one-to-many** from dimension tables to the fact table wi
 ---
 
 ## Dataset
-
 - **Source:** Credit card transactions dataset (1,296,676 rows, 24 columns)
-- **Time Period:** 2019–2020
-- **Key Fields:** Transaction amount, timestamp, merchant, category, customer demographics, fraud flag
-- **File:** `credit_card_transactions.csv` (not included in repo due to size — see [Dataset Source](#dataset-source) below)
-
-### Dataset Source
-
-The dataset is publicly available on Kaggle:
 [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection)
-
-*Built as a data analytics portfolio project demonstrating Power BI, DAX, data modeling, and business intelligence skills.*
