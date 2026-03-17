@@ -14,7 +14,7 @@ A modern, AI-powered Progressive Web App for finance expenses tracking and split
 - **Complex Logic:** Algorithms for debt simplification and partial payments.
 - **Data Viz:** Interactive dashboards for spending trends and debt networks.
 
-### 2. [FanFan — Recipe Discovery](./FanFan) 🍳
+### 2. [FanFan — Tinder Styled Recipe](./FanFan) 🍳
 
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, Spoonacular API, PWA, Playwright
 

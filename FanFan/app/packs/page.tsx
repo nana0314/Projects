@@ -25,13 +25,13 @@ export default function MealPacksPage() {
           <h1 className="text-2xl font-bold text-gray-900">Meal Packs</h1>
           <p className="text-xs text-gray-400 mt-0.5">Your saved recipe collections</p>
         </div>
-        <div className="p-4 grid grid-cols-2 gap-3">
+        <div className="p-4 space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-2xl overflow-hidden bg-white shadow-sm">
-              <div className="aspect-[4/3] skeleton-shimmer" />
-              <div className="p-3 space-y-1.5">
+            <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white shadow-sm">
+              <div className="w-14 h-14 rounded-xl skeleton-shimmer flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
                 <div className="h-4 w-3/4 rounded skeleton-shimmer" />
-                <div className="h-3 w-1/2 rounded skeleton-shimmer" />
+                <div className="h-3 w-1/3 rounded skeleton-shimmer" />
               </div>
             </div>
           ))}
@@ -110,28 +110,31 @@ export default function MealPacksPage() {
           </button>
         </div>
       ) : (
-        <div className="p-4 grid grid-cols-2 gap-3">
+        <div className="p-4 space-y-2">
           {packs.map(pack => (
             <button
               key={pack.id}
               onClick={() => router.push(`/packs/${pack.id}/`)}
-              className="rounded-2xl bg-white overflow-hidden text-left shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all active:scale-[0.99] text-left"
             >
-              <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
+              <div className="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                 {pack.coverImage ? (
                   <img src={pack.coverImage} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
-                    <svg className="w-10 h-10 text-orange-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className="w-6 h-6 text-orange-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                     </svg>
                   </div>
                 )}
               </div>
-              <div className="p-3">
-                <h3 className="text-sm font-semibold text-gray-800 line-clamp-1">{pack.name}</h3>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-gray-800 truncate">{pack.name}</h3>
                 <p className="text-xs text-gray-400 mt-0.5">{pack.recipeCount} recipe{pack.recipeCount !== 1 ? 's' : ''}</p>
               </div>
+              <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           ))}
         </div>

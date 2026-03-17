@@ -54,13 +54,6 @@ export default function ProfilePage() {
           </div>
           {user ? (
             <div className="flex items-center gap-3 p-4">
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="" className="w-12 h-12 rounded-full ring-2 ring-orange-100" />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 font-bold text-lg">
-                  {user.displayName?.[0] || '?'}
-                </div>
-              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">{user.displayName}</p>
                 <p className="text-xs text-gray-400 truncate">{user.email}</p>
