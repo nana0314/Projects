@@ -24,7 +24,18 @@ A Tinder-style recipe discovery Progressive Web App — swipe through recipes, s
 - **Smart Queue:** FIFO recipe queue with history stack for undo, automatic looping, and prefetch batching from Spoonacular API.
 - **E2E Testing:** 48 Playwright tests with full API mocking — zero external API calls during test runs.
 
-### 3. [Stayin' Alive](./Stayin'%20Alive) 🏥
+### 3. [Together — Local Coordination Forum](./Together) 🤝
+
+**Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA, Playwright
+
+A local coordination discussion PWA — post ride-share requests, bundle splits, or any group coordination, find co-participants, and privately coordinate via real-time DMs or group chats.
+- **Discussion Posts:** Topic headers, markdown body (bold/italic), hashtags, public/private visibility.
+- **Bilingual Search:** English keyword search + Chinese bigram tokenizer for mixed-language hashtags and keywords.
+- **Social Layer:** Friend requests, notifications, direct messages, group chats — friends only.
+- **Trust by Default:** Google Sign-In ensures every commenter's real name and photo is always visible.
+- **E2E Testing:** 18 Playwright tests covering navigation, search modes, and auth gates.
+
+### 5. [Stayin' Alive](./Stayin'%20Alive) 🏥
 **Tech Stack:** React Native, Expo
 
 A personal safety application designed to ensure user well-being.
@@ -32,7 +43,7 @@ A personal safety application designed to ensure user well-being.
 - **Emergency Protocols:** Automatically notifies emergency contacts if inactivity is detected for 48 hours.
 - **Background Tasks:** Monitors user activity efficiently without draining battery.
 
-### 4. [Home Security IoT System](./Yeoh%20Zi%20Song's%20FYP) 🔒
+### 6. [Home Security IoT System](./Yeoh%20Zi%20Song's%20FYP) 🔒
 **Tech Stack:** Raspberry Pi, Python, IoT Sensors
 
 My Final Year Project (FYP) implementing a comprehensive "Well-Rounded IoT-based Home Security System".
@@ -40,7 +51,7 @@ My Final Year Project (FYP) implementing a comprehensive "Well-Rounded IoT-based
 - **Remote Control:** Integrated with Blynk app for remote monitoring.
 - **Lock-Down Mechanism:** Special feature to secure the premises instantly in emergencies.
 
-### 5. [Credit Card Transaction Analytics Dashboard](./Credit%20Card%20Fraud%20&%20Transactions%20Analytics%20Dashboard) 💳
+### 7. [Credit Card Transaction Analytics Dashboard](./Credit%20Card%20Fraud%20&%20Transactions%20Analytics%20Dashboard) 💳
 **Tech Stack:** Power BI, DAX, Data Modeling
 
 A comprehensive 4-page Power BI dashboard analyzing **1.3 million credit card transactions** using a star schema data model.

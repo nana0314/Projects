@@ -1,4 +1,4 @@
-# Pin — Local Coordination Forum
+# Together — Local Coordination Forum
 
 A Next.js 15 PWA for local coordination posts (ride sharing, bundle splitting, etc.) with real-time chat, friend system, and bilingual search.
 

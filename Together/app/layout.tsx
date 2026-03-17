@@ -12,13 +12,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Pin - Local Forum',
+  title: 'Together - Local Forum',
   description: 'Post coordination requests, find people, chat with friends.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Pin',
+    title: 'Together',
   },
   icons: {
     icon: '/icons/icon-192x192.png',

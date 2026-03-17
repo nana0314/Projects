@@ -1,6 +1,6 @@
 {
-  "name": "Pin - Local Coordination Forum",
-  "short_name": "Pin",
+  "name": "Together - Local Coordination Forum",
+  "short_name": "Together",
   "description": "Post coordination requests, find people nearby, chat with friends.",
   "start_url": "/",
   "display": "standalone",
