@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f5f3ff;
+  --foreground: #1e1b4b;
+  --brand: #6366f1;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+}
+
+html {
+  overscroll-behavior-y: none;
+  background: var(--background);
+}
+
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #e0e7ff 25%, #c7d2fe 50%, #e0e7ff 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+nav[class*="fixed bottom-0"] {
+  display: block !important;
+  visibility: visible !important;
+  z-index: 50 !important;
+}
+
+nav[class*="fixed bottom-0"] > div:first-child {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+}
+
+[vaul-drawer] {
+  touch-action: none;
+}
+
+/* Prose styles for markdown-rendered post bodies */
+.pin-prose strong { font-weight: 700; color: inherit; }
+.pin-prose em     { font-style: italic; }
