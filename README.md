@@ -5,11 +5,13 @@ Welcome to my project repository! This collection showcases my journey across fu
 ## 🌟 Featured Projects
 
 ### 1. [Smart Split](./Smart%20Split) 🐻
-**https://smart-split-bay.vercel.app/**
+
+**[https://smart-split-bay.vercel.app/](https://smart-split-bay.vercel.app/)**
 
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA
 
 A modern, AI-powered Progressive Web App for finance expenses tracking and splitting with friends.
+
 - **AI Integration:** Uses Vertex AI (Gemini) for receipt scanning and NLP for chat-based expense entry.
 - **Complex Logic:** Algorithms for debt simplification and partial payments.
 - **Data Viz:** Interactive dashboards for spending trends and debt networks.
@@ -19,6 +21,7 @@ A modern, AI-powered Progressive Web App for finance expenses tracking and split
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, Spoonacular API, PWA, Playwright
 
 A Tinder-style recipe discovery Progressive Web App — swipe through recipes, save favorites into Meal Packs, and filter by cuisine, diet, and meal type.
+
 - **Gesture-Driven UI:** Swipe left to skip, swipe right to undo, swipe up to save, tap to preview ingredients, double-tap for full details.
 - **Meal Packs:** User-created recipe collections with duplicate detection, backed by localStorage (guest) or Firebase Firestore (authenticated).
 - **Smart Queue:** FIFO recipe queue with history stack for undo, automatic looping, and prefetch batching from Spoonacular API.
@@ -36,29 +39,36 @@ A Tinder-style recipe discovery Progressive Web App — swipe through recipes, s
 - **Trust by Default:** Google Sign-In ensures every commenter's real name and photo is always visible.
 - **E2E Testing:** 133 Playwright tests covering feed, posts, comments, search (English + Chinese), friends, DMs, group chats, and navigation.
 
-### 5. [Stayin' Alive](./Stayin'%20Alive) 🏥
+### 4. [Stayin' Alive](./Stayin'%20Alive) 🏥
+
 **Tech Stack:** React Native, Expo
 
 A personal safety application designed to ensure user well-being.
+
 - **Automated Check-ins:** Daily check-in system to confirm safety.
 - **Emergency Protocols:** Automatically notifies emergency contacts if inactivity is detected for 48 hours.
 - **Background Tasks:** Monitors user activity efficiently without draining battery.
 
-### 6. [Home Security IoT System](./Yeoh%20Zi%20Song's%20FYP) 🔒
+### 5. [Home Security IoT System](./Yeoh%20Zi%20Song's%20FYP) 🔒
+
 **Tech Stack:** Raspberry Pi, Python, IoT Sensors
 
 My Final Year Project (FYP) implementing a comprehensive "Well-Rounded IoT-based Home Security System".
+
 - **Hardware Integration:** NFC/RFID access control, motion detectors, and cameras.
 - **Remote Control:** Integrated with Blynk app for remote monitoring.
 - **Lock-Down Mechanism:** Special feature to secure the premises instantly in emergencies.
 
-### 7. [Credit Card Transaction Analytics Dashboard](./Credit%20Card%20Fraud%20&%20Transactions%20Analytics%20Dashboard) 💳
+### 6. [Credit Card Transaction Analytics Dashboard](./Credit%20Card%20Fraud%20&%20Transactions%20Analytics%20Dashboard) 💳
+
 **Tech Stack:** Power BI, DAX, Data Modeling
 
 A comprehensive 4-page Power BI dashboard analyzing **1.3 million credit card transactions** using a star schema data model.
+
 - **Data Modeling:** Star schema design with 1 fact table and 4 dimension tables.
 - **DAX Calculations:** 20+ measures covering KPIs, fraud detection, time intelligence, and customer analytics.
 - **Data Visualization:** Executive KPIs, fraud intelligence, spending behavior analysis, and customer segmentation.
+
 ---
 
 ## 📚 University & Academic Projects
