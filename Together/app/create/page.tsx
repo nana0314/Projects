@@ -199,6 +199,7 @@ export default function CreatePostPage() {
             </p>
           </div>
           <button
+            data-testid="visibility-toggle"
             onClick={() => setVisibility(v => v === 'public' ? 'private' : 'public')}
             className={`relative w-11 h-6 rounded-full transition-colors ${
               visibility === 'public' ? 'bg-brand-500' : 'bg-gray-300'

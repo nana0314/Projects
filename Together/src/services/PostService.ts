@@ -6,6 +6,7 @@ import {
 import { db } from '@/src/config/firebase';
 import { Post } from '@/src/types';
 import { buildSearchTokens } from '@/src/lib/tokenizer';
+import { getE2E } from '@/src/lib/testMode';
 
 const POSTS = 'posts';
 
@@ -23,10 +24,14 @@ export async function createPost(
 }
 
 export async function deletePost(postId: string): Promise<void> {
+  if (getE2E()) return; // E2E mode: skip real write
   await deleteDoc(doc(db, POSTS, postId));
 }
 
 export async function getPostById(postId: string): Promise<Post | null> {
+  const e2e = getE2E();
+  if (e2e?.postById?.[postId]) return e2e.postById[postId];
+  if (e2e?.posts) return e2e.posts.find(p => p.id === postId) ?? null;
   const snap = await getDoc(doc(db, POSTS, postId));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() } as Post;
@@ -36,6 +41,8 @@ export async function getFeedPosts(
   pageSize = 10,
   cursor?: DocumentSnapshot
 ): Promise<{ posts: Post[]; cursor: DocumentSnapshot | null }> {
+  const e2e = getE2E();
+  if (e2e?.posts && !cursor) return { posts: e2e.posts, cursor: null };
   let q = query(
     collection(db, POSTS),
     where('visibility', '==', 'public'),
@@ -50,6 +57,8 @@ export async function getFeedPosts(
 }
 
 export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
+  const e2e = getE2E();
+  if (e2e?.posts) return e2e.posts.filter(p => p.authorId === authorId);
   const snap = await getDocs(
     query(collection(db, POSTS), where('authorId', '==', authorId), orderBy('createdAt', 'desc'))
   );
@@ -57,6 +66,8 @@ export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
 }
 
 export async function searchByHashtag(tag: string): Promise<Post[]> {
+  const e2e = getE2E();
+  if (e2e?.posts) return e2e.posts.filter(p => p.visibility === 'public' && p.hashtags.includes(tag.toLowerCase()));
   const snap = await getDocs(
     query(
       collection(db, POSTS),
@@ -69,6 +80,12 @@ export async function searchByHashtag(tag: string): Promise<Post[]> {
 }
 
 export async function searchByKeywords(tokens: string[]): Promise<Post[]> {
+  const e2e = getE2E();
+  if (e2e?.posts) {
+    return e2e.posts
+      .filter(p => p.visibility === 'public' && tokens.some(t => p.searchTokens.includes(t)))
+      .sort((a, b) => tokens.filter(t => b.searchTokens.includes(t)).length - tokens.filter(t => a.searchTokens.includes(t)).length);
+  }
   const q = query(
     collection(db, POSTS),
     where('visibility', '==', 'public'),

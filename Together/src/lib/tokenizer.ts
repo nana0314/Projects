@@ -20,27 +20,23 @@ export function tokenize(text: string): string[] {
 
   for (const seg of segments) {
     if (CJK_RE.test(seg)) {
-      // mixed segment — split into CJK runs and latin runs
-      let buf = '';
+      // Accumulate CJK runs and Latin runs separately
+      let cjkRun = '';
+      let latinRun = '';
       for (const char of seg) {
         if (isCJK(char)) {
-          if (buf) {
-            buf.toLowerCase().split('').filter(Boolean).forEach(w => tokens.add(w));
-            buf = '';
-          }
-          buf += char;
+          // Flush any pending latin run first
+          if (latinRun.trim().length > 1) tokens.add(latinRun.toLowerCase().trim());
+          latinRun = '';
+          cjkRun += char;
         } else {
-          if (buf && CJK_RE.test(buf)) {
-            bigrams(buf).forEach(b => tokens.add(b));
-            buf = '';
-          }
-          buf += char;
+          // Flush any pending CJK run first, generating bigrams
+          if (cjkRun) { bigrams(cjkRun).forEach(b => tokens.add(b)); cjkRun = ''; }
+          latinRun += char;
         }
       }
-      if (buf) {
-        if (CJK_RE.test(buf)) bigrams(buf).forEach(b => tokens.add(b));
-        else if (buf.trim()) tokens.add(buf.toLowerCase());
-      }
+      if (cjkRun) bigrams(cjkRun).forEach(b => tokens.add(b));
+      if (latinRun.trim().length > 1) tokens.add(latinRun.toLowerCase().trim());
     } else {
       const w = seg.toLowerCase();
       if (w.length > 1) tokens.add(w);

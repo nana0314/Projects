@@ -3,8 +3,10 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/src/context/AuthContext';
+
+const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: false });
 import { useComments } from '@/src/hooks/useComments';
 import { getPostById, deletePost } from '@/src/services/PostService';
 import { Post, Comment } from '@/src/types';
@@ -124,35 +126,30 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     router.push('/');
   };
 
-  if (postLoading) {
-    return (
-      <div className="min-h-screen bg-[#f5f3ff]">
-        <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full skeleton-shimmer" />
-          <div className="h-4 w-32 rounded skeleton-shimmer" />
-        </div>
-        <div className="max-w-lg mx-auto px-4 pt-4 space-y-3">
-          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3 animate-pulse">
-            <div className="h-4 w-20 rounded-full skeleton-shimmer" />
-            <div className="h-6 w-3/4 rounded skeleton-shimmer" />
-            <div className="h-3 w-full rounded skeleton-shimmer" />
-            <div className="h-3 w-4/5 rounded skeleton-shimmer" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!post) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Post not found.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#f5f3ff]" data-testid="post-detail-page">
+      {postLoading && (
+        <>
+          <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full skeleton-shimmer" />
+            <div className="h-4 w-32 rounded skeleton-shimmer" />
+          </div>
+          <div className="max-w-lg mx-auto px-4 pt-4 space-y-3">
+            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3 animate-pulse">
+              <div className="h-4 w-20 rounded-full skeleton-shimmer" />
+              <div className="h-6 w-3/4 rounded skeleton-shimmer" />
+              <div className="h-3 w-full rounded skeleton-shimmer" />
+              <div className="h-3 w-4/5 rounded skeleton-shimmer" />
+            </div>
+          </div>
+        </>
+      )}
+      {!postLoading && !post && (
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-gray-500">Post not found.</p>
+        </div>
+      )}
+      {!postLoading && post && (<>
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between max-w-lg mx-auto">
         <button onClick={() => router.back()} className="text-gray-500 p-1">
@@ -297,6 +294,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
           </p>
         </div>
       )}
+      </>)}
     </div>
   );
 }

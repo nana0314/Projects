@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/src/config/firebase';
 import { FriendRequest, Friendship, UserProfile } from '@/src/types';
+import { getE2E } from '@/src/lib/testMode';
 
 const FR = 'friendRequests';
 const FS = 'friendships';
@@ -14,6 +15,7 @@ export async function sendFriendRequest(
   from: { uid: string; displayName: string; photoURL: string },
   toId: string
 ): Promise<void> {
+  if (getE2E()) return; // E2E mode: skip real write
   // prevent duplicates
   const existing = await getDocs(
     query(collection(db, FR), where('fromId', '==', from.uid), where('toId', '==', toId))
@@ -31,8 +33,8 @@ export async function sendFriendRequest(
 }
 
 export async function acceptFriendRequest(requestId: string, uid1: string, uid2: string): Promise<void> {
+  if (getE2E()) return; // E2E mode: skip real write
   await updateDoc(doc(db, FR, requestId), { status: 'accepted' });
-  // create friendship
   const friendshipId = [uid1, uid2].sort().join('_');
   await setDoc(doc(db, FS, friendshipId), {
     userIds: [uid1, uid2],
@@ -41,14 +43,17 @@ export async function acceptFriendRequest(requestId: string, uid1: string, uid2:
 }
 
 export async function declineFriendRequest(requestId: string): Promise<void> {
+  if (getE2E()) return; // E2E mode: skip real write
   await updateDoc(doc(db, FR, requestId), { status: 'declined' });
 }
 
 export async function cancelFriendRequest(requestId: string): Promise<void> {
+  if (getE2E()) return; // E2E mode: skip real write
   await deleteDoc(doc(db, FR, requestId));
 }
 
 export async function removeFriend(uid1: string, uid2: string): Promise<void> {
+  if (getE2E()) return; // E2E mode: skip real write
   const friendshipId = [uid1, uid2].sort().join('_');
   await deleteDoc(doc(db, FS, friendshipId));
 }
@@ -56,6 +61,8 @@ export async function removeFriend(uid1: string, uid2: string): Promise<void> {
 // ── Queries ────────────────────────────────────────────────────────────────────
 
 export async function getIncomingRequests(userId: string): Promise<FriendRequest[]> {
+  const e2e = getE2E();
+  if (e2e?.friendRequests) return e2e.friendRequests.filter(r => r.toId === userId && r.status === 'pending');
   const snap = await getDocs(
     query(collection(db, FR), where('toId', '==', userId), where('status', '==', 'pending'))
   );
@@ -63,6 +70,8 @@ export async function getIncomingRequests(userId: string): Promise<FriendRequest
 }
 
 export async function getOutgoingRequest(fromId: string, toId: string): Promise<FriendRequest | null> {
+  const e2e = getE2E();
+  if (e2e?.friendRequests) return e2e.friendRequests.find(r => r.fromId === fromId && r.toId === toId && r.status === 'pending') ?? null;
   const snap = await getDocs(
     query(collection(db, FR), where('fromId', '==', fromId), where('toId', '==', toId), where('status', '==', 'pending'))
   );
@@ -71,6 +80,8 @@ export async function getOutgoingRequest(fromId: string, toId: string): Promise<
 }
 
 export async function getFriends(userId: string): Promise<string[]> {
+  const e2e = getE2E();
+  if (e2e?.friendships) return e2e.friendships.filter(pair => pair.includes(userId)).map(pair => pair.find(u => u !== userId)!);
   const snap = await getDocs(
     query(collection(db, FS), where('userIds', 'array-contains', userId))
   );
@@ -81,6 +92,8 @@ export async function getFriends(userId: string): Promise<string[]> {
 }
 
 export async function areFriends(uid1: string, uid2: string): Promise<boolean> {
+  const e2e = getE2E();
+  if (e2e?.friendships) return e2e.friendships.some(pair => pair.includes(uid1) && pair.includes(uid2));
   const friendshipId = [uid1, uid2].sort().join('_');
   const snap = await getDoc(doc(db, FS, friendshipId));
   return snap.exists();
@@ -117,6 +130,8 @@ export async function reportUser(reporterId: string, reportedUserId: string, rea
 // ── User Profile ───────────────────────────────────────────────────────────────
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const e2e = getE2E();
+  if (e2e?.users?.[userId]) return e2e.users[userId];
   const snap = await getDoc(doc(db, 'users', userId));
   if (!snap.exists()) return null;
   return { uid: snap.id, ...snap.data() } as UserProfile;

@@ -5,6 +5,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { getPostsByAuthor } from '@/src/services/PostService';
 import { getDocs, getDoc, doc, query, collection, orderBy } from 'firebase/firestore';
 import { db } from '@/src/config/firebase';
+import { getE2E } from '@/src/lib/testMode';
 import { Post } from '@/src/types';
 import SignInPrompt from '@/src/components/SignInPrompt';
 import PostCard from '@/src/components/PostCard';
@@ -26,18 +27,22 @@ export default function ProfilePage() {
       setMyPosts(posts);
 
       // Load commented posts
-      const commentedSnap = await getDocs(
-        query(collection(db, 'users', user!.uid, 'commentedPosts'), orderBy('firstCommentedAt', 'desc'))
-      );
-      const postIds = commentedSnap.docs.map(d => d.data().postId as string);
-      const fetched = await Promise.all(
-        postIds.map(async (pid) => {
-          const snap = await getDoc(doc(db, 'posts', pid));
-          if (!snap.exists()) return null;
-          return { id: snap.id, ...snap.data() } as Post;
-        })
-      );
-      setCommentedPosts(fetched.filter(Boolean) as Post[]);
+      if (getE2E()) {
+        setCommentedPosts([]); // E2E: no commented posts data, skip Firestore
+      } else {
+        const commentedSnap = await getDocs(
+          query(collection(db, 'users', user!.uid, 'commentedPosts'), orderBy('firstCommentedAt', 'desc'))
+        );
+        const postIds = commentedSnap.docs.map(d => d.data().postId as string);
+        const fetched = await Promise.all(
+          postIds.map(async (pid) => {
+            const snap = await getDoc(doc(db, 'posts', pid));
+            if (!snap.exists()) return null;
+            return { id: snap.id, ...snap.data() } as Post;
+          })
+        );
+        setCommentedPosts(fetched.filter(Boolean) as Post[]);
+      }
       setLoading(false);
     }
     load();
@@ -90,6 +95,7 @@ export default function ProfilePage() {
           {(['posts', 'commented'] as Tab[]).map(t => (
             <button
               key={t}
+              data-testid={t === 'posts' ? 'tab-posts' : 'tab-commented'}
               onClick={() => setTab(t)}
               className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all ${
                 tab === t ? 'bg-brand-500 text-white' : 'text-gray-500 hover:text-gray-700'

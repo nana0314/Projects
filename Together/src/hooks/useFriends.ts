@@ -13,6 +13,7 @@ import {
   areFriends,
   getOutgoingRequest,
 } from '@/src/services/FriendService';
+import { getE2E } from '@/src/lib/testMode';
 
 export function useFriends(userId: string | null) {
   const [friends, setFriends] = useState<UserProfile[]>([]);
@@ -42,7 +43,8 @@ export function useFriends(userId: string | null) {
 
   const accept = useCallback(async (req: FriendRequest) => {
     await acceptFriendRequest(req.id, req.fromId, req.toId);
-    await refresh();
+    setIncoming(prev => prev.filter(r => r.id !== req.id));
+    if (!getE2E()) await refresh(); // skip refresh in E2E to avoid re-loading mock requests
   }, [refresh]);
 
   const decline = useCallback(async (requestId: string) => {

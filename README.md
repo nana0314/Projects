@@ -28,12 +28,13 @@ A Tinder-style recipe discovery Progressive Web App — swipe through recipes, s
 
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA, Playwright
 
-A local coordination discussion PWA — post ride-share requests, bundle splits, or any group coordination, find co-participants, and privately coordinate via real-time DMs or group chats.
-- **Discussion Posts:** Topic headers, markdown body (bold/italic), hashtags, public/private visibility.
+**Purpose:** Together helps people coordinate locally before meeting in person — whether splitting an Uber, sharing a Costco membership, or organizing a group buy. Post a discussion, find interested people in the comments, then move private coordination into DMs or group chats. Real Google names and photos on every interaction build trust before you meet up.
+
+- **Discussion Posts:** Topic headers (e.g. "Ride Share Cambridge"), markdown body (bold/italic), hashtags, public/private visibility.
 - **Bilingual Search:** English keyword search + Chinese bigram tokenizer for mixed-language hashtags and keywords.
 - **Social Layer:** Friend requests, notifications, direct messages, group chats — friends only.
 - **Trust by Default:** Google Sign-In ensures every commenter's real name and photo is always visible.
-- **E2E Testing:** 18 Playwright tests covering navigation, search modes, and auth gates.
+- **E2E Testing:** 133 Playwright tests covering feed, posts, comments, search (English + Chinese), friends, DMs, group chats, and navigation.
 
 ### 5. [Stayin' Alive](./Stayin'%20Alive) 🏥
 **Tech Stack:** React Native, Expo

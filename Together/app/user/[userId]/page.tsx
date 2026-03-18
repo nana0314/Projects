@@ -172,7 +172,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ userId: 
         <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col items-center gap-3 text-center">
           <Avatar src={profile.photoURL} name={profile.displayName} size={72} />
           <div>
-            <h2 className="text-base font-bold text-gray-900">{profile.displayName}</h2>
+            <h2 className="text-base font-bold text-gray-900" data-testid="profile-display-name">{profile.displayName}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{posts.length} posts</p>
           </div>
 

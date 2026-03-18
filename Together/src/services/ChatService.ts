@@ -6,12 +6,19 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/src/config/firebase';
 import { Chat, Message, UserProfile } from '@/src/types';
+import { getE2E } from '@/src/lib/testMode';
 
 const CHATS = 'chats';
 
 // ── Create ─────────────────────────────────────────────────────────────────────
 
 export async function createDM(uid1: string, uid2: string, profiles: Record<string, UserProfile>): Promise<string> {
+  const e2e = getE2E();
+  if (e2e?.chats) {
+    const existing = e2e.chats.find(c => c.type === 'dm' && c.participantIds.includes(uid1) && c.participantIds.includes(uid2));
+    if (existing) return existing.id;
+    return 'dm-chat-1'; // fallback E2E chat id
+  }
   // Check if DM already exists
   const snap = await getDocs(
     query(collection(db, CHATS), where('type', '==', 'dm'), where('participantIds', 'array-contains', uid1))
@@ -46,6 +53,7 @@ export async function createGroup(
   memberIds: string[],
   profiles: Record<string, UserProfile>
 ): Promise<string> {
+  if (getE2E()) return 'group-chat-e2e'; // E2E mode: skip real write
   const participantIds = Array.from(new Set([adminId, ...memberIds]));
   const participantNames: Record<string, string> = {};
   const participantPhotos: Record<string, string> = {};
@@ -75,6 +83,7 @@ export async function sendMessage(
   sender: { uid: string; displayName: string; photoURL: string },
   body: string
 ): Promise<void> {
+  if (getE2E()) return; // E2E mode: skip real write
   await addDoc(collection(db, CHATS, chatId, 'messages'), {
     senderId: sender.uid,
     senderName: sender.displayName,
@@ -92,6 +101,12 @@ export function subscribeToMessages(
   chatId: string,
   callback: (messages: Message[]) => void
 ): Unsubscribe {
+  const e2e = getE2E();
+  if (e2e?.messagesByChat) {
+    const msgs = e2e.messagesByChat[chatId] ?? [];
+    setTimeout(() => callback(msgs), 0);
+    return () => {};
+  }
   return onSnapshot(
     query(collection(db, CHATS, chatId, 'messages'), orderBy('createdAt', 'asc')),
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Message)))
@@ -108,6 +123,12 @@ export async function getUserChats(userId: string): Promise<Chat[]> {
 }
 
 export function subscribeToChats(userId: string, callback: (chats: Chat[]) => void): Unsubscribe {
+  const e2e = getE2E();
+  if (e2e?.chats) {
+    const filtered = e2e.chats.filter(c => c.participantIds?.includes(userId));
+    setTimeout(() => callback(filtered), 0);
+    return () => {};
+  }
   return onSnapshot(
     query(collection(db, CHATS), where('participantIds', 'array-contains', userId), orderBy('lastMessageAt', 'desc')),
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Chat)))
@@ -115,6 +136,9 @@ export function subscribeToChats(userId: string, callback: (chats: Chat[]) => vo
 }
 
 export async function getChatById(chatId: string): Promise<Chat | null> {
+  const e2e = getE2E();
+  if (e2e?.chatById?.[chatId]) return e2e.chatById[chatId];
+  if (e2e?.chats) return e2e.chats.find(c => c.id === chatId) ?? null;
   const snap = await getDoc(doc(db, CHATS, chatId));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() } as Chat;
