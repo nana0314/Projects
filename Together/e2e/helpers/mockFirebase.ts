@@ -129,7 +129,7 @@ export async function injectMockAuth(page: Page) {
 // ── Inject E2E data into window.__E2E__ ───────────────────────────────────────
 export async function injectE2EData(page: Page, data: E2EData) {
   await page.addInitScript((d) => {
-    (window as Record<string, unknown>).__E2E__ = d;
+    (window as unknown as Record<string, unknown>).__E2E__ = d;
   }, data as unknown as Record<string, unknown>);
 }
 

@@ -21,5 +21,5 @@ export interface E2EData {
 
 export function getE2E(): E2EData | null {
   if (typeof window === 'undefined') return null;
-  return (window as Record<string, unknown>).__E2E__ as E2EData ?? null;
+  return (window as unknown as Record<string, unknown>).__E2E__ as E2EData ?? null;
 }

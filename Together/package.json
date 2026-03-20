@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
-    "test:e2e:headed": "npx playwright test --headed"
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:prod": "npx playwright test"
   },
   "dependencies": {
     "firebase": "^12.7.0",

@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/** Production or preview URL for smoke tests; omit for local dev. */
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
+
+const isRemoteBase =
+  Boolean(process.env.PLAYWRIGHT_BASE_URL) &&
+  !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(baseURL);
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -9,7 +17,7 @@ export default defineConfig({
   reporter: 'html',
   timeout: 45000,
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -19,18 +27,13 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'npx next dev -p 3000',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 120000,
-    env: {
-      NEXT_PUBLIC_FIREBASE_API_KEY: 'AIzaSyABPfGInmgOCx5JBcw7E2s9GKID8FZl8Dk',
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'ping-51b68.firebaseapp.com',
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'ping-51b68',
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'ping-51b68.firebasestorage.app',
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '389292577130',
-      NEXT_PUBLIC_FIREBASE_APP_ID: '1:389292577130:web:6fecf7d4ee6c6714c71513',
-    },
-  },
+  // Local only: Next.js loads Firebase keys from Together/.env.local
+  webServer: isRemoteBase
+    ? undefined
+    : {
+        command: 'npx next dev -p 3000',
+        url: 'http://localhost:3000',
+        reuseExistingServer: true,
+        timeout: 120000,
+      },
 });
