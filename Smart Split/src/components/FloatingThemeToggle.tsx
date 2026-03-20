@@ -7,9 +7,8 @@ export default function FloatingThemeToggle() {
     const { theme, toggleTheme } = useTheme();
     const pathname = usePathname();
 
-    // Only show on dashboard, friends, and groups pages
-    const allowedPaths = ['/dashboard', '/friends', '/groups'];
-    const isAllowed = pathname && allowedPaths.some((path) => pathname === path || pathname.startsWith(path + '/'));
+    // Only show on the dashboard page
+    const isAllowed = pathname === '/dashboard';
 
     if (!isAllowed) return null;
 
