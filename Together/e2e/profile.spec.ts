@@ -70,7 +70,7 @@ test.describe('Navigation — Bottom Nav', () => {
 
   test('nav-feed links to home feed', async ({ page }) => {
     await page.getByTestId('nav-feed').click();
-    await expect(page).toHaveURL(/^http:\/\/localhost:\d+\/$/);
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test('nav-post links to create page', async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('Navigation — Bottom Nav', () => {
       { id: 'nav-post',   urlPattern: /\/create/ },
       { id: 'nav-chat',   urlPattern: /\/chat/   },
       { id: 'nav-profile',urlPattern: /\/profile/},
-      { id: 'nav-feed',   urlPattern: /localhost:\d+\/$/ },
+      { id: 'nav-feed',   urlPattern: /\/$/ },
     ];
     for (const { id, urlPattern } of tabs) {
       await page.getByTestId(id).click();

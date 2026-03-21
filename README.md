@@ -29,6 +29,8 @@ A Tinder-style recipe discovery Progressive Web App — swipe through recipes, s
 
 ### 3. [Together — Local Coordination Forum](./Together) 🤝
 
+**[https://together-0314.vercel.app](https://together-0314.vercel.app)**
+
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA, Playwright
 
 **Purpose:** Together helps people coordinate locally before meeting in person — whether splitting an Uber, sharing a Costco membership, or organizing a group buy. Post a discussion, find interested people in the comments, then move private coordination into DMs or group chats. Real Google names and photos on every interaction build trust before you meet up.

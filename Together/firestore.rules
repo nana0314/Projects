@@ -1,8 +1,119 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
     }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    // Anyone signed in can read any profile (for friend pages, chat participants, etc.)
+    // Only the owner can write their own profile.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+
+      // commentedPosts: owner-only
+      match /commentedPosts/{postId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ── Posts ─────────────────────────────────────────────────────────────────
+    // Public posts are readable by anyone (even unauthenticated, for SEO/share).
+    // Only signed-in users can create posts.
+    // Only the post author can delete their own post.
+    match /posts/{postId} {
+      allow read: if resource.data.visibility == 'public' || isOwner(resource.data.authorId);
+      allow create: if isSignedIn()
+                    && request.resource.data.authorId == request.auth.uid;
+      allow update: if isSignedIn()
+                    && (
+                      // Author can update their own post
+                      resource.data.authorId == request.auth.uid
+                      // Or a server-style commentCount increment (any signed-in user can trigger)
+                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount']))
+                    );
+      allow delete: if isOwner(resource.data.authorId);
+
+      // Comments: any signed-in user can read/create; only the author can delete
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn()
+                      && request.resource.data.authorId == request.auth.uid;
+        allow delete: if isOwner(resource.data.authorId);
+        allow update: if false;
+      }
+    }
+
+    // ── Friend Requests ───────────────────────────────────────────────────────
+    // A request is visible only to sender (fromId) or recipient (toId).
+    match /friendRequests/{reqId} {
+      allow read: if isSignedIn()
+                  && (request.auth.uid == resource.data.fromId
+                      || request.auth.uid == resource.data.toId);
+      allow create: if isSignedIn()
+                    && request.resource.data.fromId == request.auth.uid;
+      allow update: if isSignedIn()
+                    && (request.auth.uid == resource.data.fromId
+                        || request.auth.uid == resource.data.toId)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if isSignedIn()
+                    && request.auth.uid == resource.data.fromId;
+    }
+
+    // ── Friendships ───────────────────────────────────────────────────────────
+    // Readable and deletable only by one of the two friends.
+    // Created only when accepting a friend request (both userIds must include the requester).
+    match /friendships/{friendshipId} {
+      allow read: if isSignedIn()
+                  && request.auth.uid in resource.data.userIds;
+      allow create: if isSignedIn()
+                    && request.auth.uid in request.resource.data.userIds;
+      allow delete: if isSignedIn()
+                    && request.auth.uid in resource.data.userIds;
+      allow update: if false;
+    }
+
+    // ── Chats ─────────────────────────────────────────────────────────────────
+    // Only participants can read or write to a chat or its messages.
+    match /chats/{chatId} {
+      allow read: if isSignedIn()
+                  && request.auth.uid in resource.data.participantIds;
+      allow create: if isSignedIn()
+                    && request.auth.uid in request.resource.data.participantIds;
+      allow update: if isSignedIn()
+                    && request.auth.uid in resource.data.participantIds;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+                    && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+        allow create: if isSignedIn()
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds
+                      && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
+    // ── Blocks ────────────────────────────────────────────────────────────────
+    // Only the blocker can manage their block list.
+    match /blocks/{blockerId}/blockedUsers/{blockedId} {
+      allow read, write: if isOwner(blockerId);
+    }
+
+    // ── Reports ───────────────────────────────────────────────────────────────
+    // Any signed-in user can create a report; no one can read or edit them (admin-only via console).
+    match /reports/{reportId} {
+      allow create: if isSignedIn()
+                    && request.resource.data.reporterId == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
   }
 }
