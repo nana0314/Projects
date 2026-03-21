@@ -91,6 +91,19 @@ A collection of my coursework and research projects exploring algorithms and fou
 
 ---
 
+### 7. [Solume Coding Review](./solume)
+
+**Section C Live URL: [https://section-c-xi.vercel.app](https://section-c-xi.vercel.app)**
+
+**Tech Stack (Section C):** Next.js 16, TypeScript, Tailwind CSS, Recharts, Vercel
+
+A coding assessment submission for Solume Medical:
+- **Section A**: BMW Global Sales (2018–2025) data analysis in Power BI — data quality checks, BEV electrification trends, price elasticity, and seasonal patterns.
+- **Section B**: Tree kawaiiness algorithm in Python — O(n) rerooting approach for computing total LCA cuteness across all roots.
+- **Section C**: Full-stack CMS Dialysis Mortality web app — filterable summary stats, paginated table with outlier detection, and analysis charts (trend, state/ZIP comparison, distribution).
+
+---
+
 ## 📫 Contact
 
 Feel free to explore the code in each folder!
