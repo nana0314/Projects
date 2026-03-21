@@ -4,11 +4,13 @@ Submission for the Solume Medical coding assessment (deadline: 27 March 2026, 9:
 
 ## Structure
 
-| Folder | Section | Description |
-|--------|---------|-------------|
-| `section-a/` | Section A (Q A, B, C) | BMW Global Sales data analysis — Power BI (.pbix) |
-| `section-b/` | Section B (Q D) | Tree LCA kawaiiness algorithm — Python |
-| `section-c/` | Section C (Q E) | CMS Dialysis Mortality full-stack app — Next.js + Vercel |
+
+| Folder       | Section               | Description                                              |
+| ------------ | --------------------- | -------------------------------------------------------- |
+| `section-a/` | Section A (Q A, B, C) | BMW Global Sales data analysis — Power BI (.pbix)        |
+| `section-b/` | Section B (Q D)       | Tree LCA kawaiiness algorithm — Python                   |
+| `section-c/` | Section C (Q E)       | CMS Dialysis Mortality full-stack app — Next.js + Vercel |
+
 
 ---
 
@@ -61,11 +63,13 @@ So: `f(r) = |{v : subtree_size_r(v) >= k}|`
 
 **Rerooting in O(n):** Root the tree at node 1. For each node `v` with subtree size `sub[v]`, count roots `r` where `subtree_size_r(v) >= k`:
 
-| Root `r` location | subtree_size_r(v) | Count | Contributes if |
-|---|---|---|---|
-| Outside `sub[v]` | `sub[v]` | `n − sub[v]` | `sub[v] >= k` |
-| `r = v` | `n` | `1` | always |
-| Inside child `c` of `v` | `n − sub[c]` | `sub[c]` | `n − sub[c] >= k` |
+
+| Root `r` location       | subtree_size_r(v) | Count        | Contributes if    |
+| ----------------------- | ----------------- | ------------ | ----------------- |
+| Outside `sub[v]`        | `sub[v]`          | `n − sub[v]` | `sub[v] >= k`     |
+| `r = v`                 | `n`               | `1`          | always            |
+| Inside child `c` of `v` | `n − sub[c]`      | `sub[c]`     | `n − sub[c] >= k` |
+
 
 **Total per node v:** `[sub[v]>=k]*(n−sub[v]) + 1 + Σ_children_c [n−sub[c]>=k]*sub[c]`
 
@@ -73,18 +77,20 @@ So: `f(r) = |{v : subtree_size_r(v) >= k}|`
 
 ### Verified Examples
 
-| Input | Expected | Got |
-|---|---|---|
-| n=2, k=2 | 2 | ✓ 2 |
-| n=5, k=3 (star) | 9 | ✓ 9 |
-| n=6, k=3 | 17 | ✓ 17 |
-| n=10, k=5 | 35 | — (edges not shown in PDF) |
+
+| Input           | Expected | Got                        |
+| --------------- | -------- | -------------------------- |
+| n=2, k=2        | 2        | ✓ 2                        |
+| n=5, k=3 (star) | 9        | ✓ 9                        |
+| n=6, k=3        | 17       | ✓ 17                       |
+| n=10, k=5       | 35       | ✓ 35                       |
+
 
 ---
 
 ## Section C — Full-Stack Application (Next.js)
 
-**Live URL:** https://section-c-xi.vercel.app
+**Live URL:** [https://section-c-xi.vercel.app](https://section-c-xi.vercel.app)
 
 A full-stack web application for analysing dialysis facility mortality rates using publicly available CMS data.
 
@@ -103,6 +109,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Pages
 
 **Page 1 — Summary (`/`)**
+
 - **Filters**: Year, Month, State, ZIP code (prefix match), Facility Name (search)
 - **Stats**: Total facilities, average / min / max mortality rate
 - **Top 10 Highest & Lowest** mortality facilities in the filtered set
@@ -110,6 +117,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Export CSV** — downloads all filtered results as a CSV file
 
 **Page 2 — Analysis (`/analysis`)**
+
 - **Monthly trend** — line chart of average mortality by measurement start month
 - **State comparison** — bar chart with national average reference line; bars above national avg are red
 - **Multi-state side-by-side** — click state badges to compare specific states
@@ -121,11 +129,13 @@ Open [http://localhost:3000](http://localhost:3000).
 
 All endpoints accept query params: `?year=&month=&state=&zip=&name=`
 
-| Endpoint | Returns |
-|---|---|
-| `GET /api/summary` | `{ total, avgMortality, minMortality, maxMortality, stdDev, outlierThreshold, top10Highest, top10Lowest }` |
-| `GET /api/table?page=1&pageSize=20` | `{ data[], page, pageSize, total }` |
-| `GET /api/analysis` | `{ monthlyTrend[], byState[], byZip[], distribution[], nationalAvg }` |
+
+| Endpoint                            | Returns                                                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `GET /api/summary`                  | `{ total, avgMortality, minMortality, maxMortality, stdDev, outlierThreshold, top10Highest, top10Lowest }` |
+| `GET /api/table?page=1&pageSize=20` | `{ data[], page, pageSize, total }`                                                                        |
+| `GET /api/analysis`                 | `{ monthlyTrend[], byState[], byZip[], distribution[], nationalAvg }`                                      |
+
 
 ### Architectural Decisions
 
@@ -143,3 +153,4 @@ All endpoints accept query params: `?year=&month=&state=&zip=&name=`
 - `smr_date` (e.g. `"01Jan2021-31Dec2024"`) is parsed to extract the start year and month for filtering.
 - ZIP filter uses prefix matching (e.g. `902` matches `90210`, `90211`, etc.).
 - Outlier threshold = mean + 2×standard deviation of the filtered set.
+
