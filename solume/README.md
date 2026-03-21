@@ -23,8 +23,6 @@ The file contains 4 pages:
 - **Page 2 – Question B**: Price elasticity by model across GDP growth conditions.
 - **Page 3 – Question C**: Seasonal patterns in Revenue_EUR and Units_Sold and their interaction with GDP_Growth and Fuel_Price_Index.
 
-> Build guide for the `.pbix` file is in `section-a/POWERBI_GUIDE.md`.
-
 ---
 
 ## Section B — Algorithm (Python)
