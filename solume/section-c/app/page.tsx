@@ -1,26 +1,34 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import Filters from "@/components/Filters";
+import { useEffect, useState } from "react";
+import Filters, { emptyFilters, type FilterValues } from "@/components/Filters";
 import PageNav from "@/components/PageNav";
 import SummaryCards from "@/components/SummaryCards";
 import Top10Table from "@/components/Top10Table";
 import DataTable from "@/components/DataTable";
 import type { SummaryResponse, TableResponse } from "@/lib/types";
 
-function SummaryPageContent() {
-  const searchParams = useSearchParams();
-  const filterString = searchParams.toString();
+export default function SummaryPage() {
+  const [filters, setFilters] = useState<FilterValues>(emptyFilters);
+  const [page, setPage] = useState(1);
 
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [table, setTable] = useState<TableResponse | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingTable, setLoadingTable] = useState(true);
 
+  const filterString = new URLSearchParams(
+    Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ""))
+  ).toString();
+
+  const handleFiltersChange = (newFilters: FilterValues) => {
+    setFilters(newFilters);
+    setPage(1);
+  };
+
   useEffect(() => {
     setLoadingSummary(true);
-    fetch(`/api/summary?${filterString}`, { cache: "no-store" })
+    fetch(`/api/summary${filterString ? `?${filterString}` : ""}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => { setSummary(data); setLoadingSummary(false); })
       .catch(() => setLoadingSummary(false));
@@ -28,11 +36,13 @@ function SummaryPageContent() {
 
   useEffect(() => {
     setLoadingTable(true);
-    fetch(`/api/table?${filterString}`, { cache: "no-store" })
+    const qs = new URLSearchParams(filterString ? filterString : undefined);
+    qs.set("page", String(page));
+    fetch(`/api/table?${qs.toString()}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => { setTable(data); setLoadingTable(false); })
       .catch(() => setLoadingTable(false));
-  }, [filterString]);
+  }, [filterString, page]);
 
   return (
     <div className="space-y-6">
@@ -46,7 +56,7 @@ function SummaryPageContent() {
         <PageNav />
       </div>
 
-      <Filters />
+      <Filters values={filters} onChange={handleFiltersChange} />
 
       {loadingSummary ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -71,15 +81,8 @@ function SummaryPageContent() {
         data={table}
         loading={loadingTable}
         filterString={filterString}
+        onPageChange={setPage}
       />
     </div>
-  );
-}
-
-export default function SummaryPage() {
-  return (
-    <Suspense>
-      <SummaryPageContent />
-    </Suspense>
   );
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import Filters from "@/components/Filters";
+import { useEffect, useState } from "react";
+import Filters, { emptyFilters, type FilterValues } from "@/components/Filters";
 import PageNav from "@/components/PageNav";
 import MortalityTrendChart from "@/components/MortalityTrendChart";
 import StateBarChart from "@/components/StateBarChart";
@@ -11,19 +10,22 @@ import DistributionChart from "@/components/DistributionChart";
 import RankingTable from "@/components/RankingTable";
 import type { AnalysisResponse, SummaryResponse } from "@/lib/types";
 
-function AnalysisPageContent() {
-  const searchParams = useSearchParams();
-  const filterString = searchParams.toString();
+export default function AnalysisPage() {
+  const [filters, setFilters] = useState<FilterValues>(emptyFilters);
 
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const filterString = new URLSearchParams(
+    Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== ""))
+  ).toString();
+
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`/api/analysis?${filterString}`, { cache: "no-store" }).then((r) => r.json()),
-      fetch(`/api/summary?${filterString}`, { cache: "no-store" }).then((r) => r.json()),
+      fetch(`/api/analysis${filterString ? `?${filterString}` : ""}`, { cache: "no-store" }).then((r) => r.json()),
+      fetch(`/api/summary${filterString ? `?${filterString}` : ""}`, { cache: "no-store" }).then((r) => r.json()),
     ])
       .then(([a, s]) => {
         setAnalysis(a);
@@ -45,7 +47,7 @@ function AnalysisPageContent() {
         <PageNav />
       </div>
 
-      <Filters />
+      <Filters values={filters} onChange={setFilters} />
 
       {loading && (
         <div className="grid md:grid-cols-2 gap-6">
@@ -76,13 +78,5 @@ function AnalysisPageContent() {
         </>
       )}
     </div>
-  );
-}
-
-export default function AnalysisPage() {
-  return (
-    <Suspense>
-      <AnalysisPageContent />
-    </Suspense>
   );
 }

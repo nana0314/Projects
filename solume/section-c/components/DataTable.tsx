@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import type { FacilityRow, TableResponse } from "@/lib/types";
 
 interface Props {
   data: TableResponse | null;
   loading: boolean;
   filterString: string;
+  onPageChange: (page: number) => void;
 }
 
 function exportCSV(filterString: string) {
@@ -30,17 +30,11 @@ function exportCSV(filterString: string) {
     });
 }
 
-export default function DataTable({ data, loading, filterString }: Props) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function DataTable({ data, loading, filterString, onPageChange }: Props) {
   const currentPage = data?.page ?? 1;
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 1;
 
-  const goToPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push("?" + params.toString());
-  };
+  const goToPage = (p: number) => onPageChange(p);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
