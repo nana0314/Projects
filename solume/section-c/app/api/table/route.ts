@@ -6,6 +6,7 @@ import type { TableResponse } from "@/lib/types";
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const params = {
+    year: searchParams.get("year") ?? undefined,
     state: searchParams.get("state") ?? undefined,
     zip: searchParams.get("zip") ?? undefined,
     name: searchParams.get("name") ?? undefined,

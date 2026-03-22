@@ -49,6 +49,9 @@ export async function getAllFacilities(): Promise<Facility[]> {
       const mortalityRaw = mortStr && mortStr !== "" ? parseFloat(mortStr) : null;
       const mortality = mortalityRaw !== null && !isNaN(mortalityRaw) ? mortalityRaw : null;
 
+      const certDate = r.certification_date ?? "";
+      const certYear = certDate ? parseInt(certDate.slice(0, 4), 10) : null;
+
       all.push({
         facility_name: r.facility_name ?? "",
         state: r.state ?? "",
@@ -59,9 +62,11 @@ export async function getAllFacilities(): Promise<Facility[]> {
         mortality_rate_lower_confidence_limit_25: r.mortality_rate_lower_confidence_limit_25 ?? "",
         citytown: r.citytown ?? "",
         cms_certification_number_ccn: r.cms_certification_number_ccn ?? "",
+        certification_date: certDate,
         _year: year,
         _month: month,
         _mortality: mortality,
+        _cert_year: certYear && !isNaN(certYear) ? certYear : null,
       });
     }
 

@@ -10,6 +10,11 @@ const US_STATES = [
   "VT","VA","WA","WV","WI","WY",
 ];
 
+// The CMS dataset covers a single aggregate period: 01Jan2021–31Dec2024.
+// Selecting a year within 2021-2024 returns all data (every facility falls in that window).
+// Years outside that range return zero results, which is correct behaviour.
+const SMR_YEARS = ["2021", "2022", "2023", "2024"];
+
 export default function Filters() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,7 +41,7 @@ export default function Filters() {
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Filters</h2>
           <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-0.5 font-medium">
-            Data period: Jan 2021 – Dec 2024
+            SMR period: Jan 2021 – Dec 2024
           </span>
         </div>
         <button
@@ -46,7 +51,23 @@ export default function Filters() {
           Clear all
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">
+            Reporting Year
+          </label>
+          <select
+            value={searchParams.get("year") ?? ""}
+            onChange={(e) => setParam("year", e.target.value)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All years (2021–2024)</option>
+            {SMR_YEARS.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-xs text-gray-500 mb-1">State</label>
           <select

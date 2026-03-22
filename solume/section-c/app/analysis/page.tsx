@@ -57,11 +57,11 @@ function AnalysisPageContent() {
 
       {!loading && analysis && (
         <>
-          <MortalityTrendChart data={analysis.byState} nationalAvg={analysis.nationalAvg} />
+          <MortalityTrendChart data={analysis.byCertEra} nationalAvg={analysis.nationalAvg} />
 
           <div className="grid md:grid-cols-2 gap-6">
             <StateBarChart data={analysis.byState} nationalAvg={analysis.nationalAvg} />
-            <ZipBarChart data={analysis.byZip} />
+            <ZipBarChart data={analysis.byZip} nationalAvg={analysis.nationalAvg} />
           </div>
 
           <DistributionChart

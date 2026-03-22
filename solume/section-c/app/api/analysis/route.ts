@@ -3,6 +3,7 @@ import { getAllFacilities } from "@/lib/cmsData";
 import {
   filterFacilities,
   groupByMonth,
+  groupByCertEra,
   groupByState,
   groupByZip,
   getDistributionBuckets,
@@ -13,6 +14,7 @@ import type { AnalysisResponse } from "@/lib/types";
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const params = {
+    year: searchParams.get("year") ?? undefined,
     state: searchParams.get("state") ?? undefined,
     zip: searchParams.get("zip") ?? undefined,
     name: searchParams.get("name") ?? undefined,
@@ -24,8 +26,9 @@ export async function GET(req: NextRequest) {
 
   const response: AnalysisResponse = {
     monthlyTrend: groupByMonth(filtered),
+    byCertEra: groupByCertEra(filtered),
     byState: groupByState(filtered),
-    byZip: groupByZip(filtered, 20),
+    byZip: groupByZip(filtered, 50),
     distribution: getDistributionBuckets(filtered),
     nationalAvg: nationalAvg !== null ? Math.round(nationalAvg * 100) / 100 : null,
   };

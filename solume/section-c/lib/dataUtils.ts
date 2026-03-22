@@ -4,10 +4,18 @@ export function filterFacilities(
   facilities: Facility[],
   params: FilterParams
 ): Facility[] {
-  // NOTE: year/month filters are intentionally omitted — all CMS facilities share the
-  // same aggregate measurement period (Jan 2021 – Dec 2024), so those fields carry no
-  // discriminating value for filtering.
+  // Year filter: the CMS SMR measurement period is 01Jan2021-31Dec2024.
+  // A facility's data is "in" a year if that year falls within its smr window.
+  // Since all facilities share the same window, selecting 2021-2024 returns everything;
+  // selecting outside that range returns nothing — which is the correct honest behaviour.
   return facilities.filter((f) => {
+    if (params.year) {
+      const y = parseInt(params.year, 10);
+      const startYear = f._year ?? 0;
+      // smr_date is always "01Jan{startYear}-31Dec{startYear+3}"
+      const endYear = startYear + 3;
+      if (y < startYear || y > endYear) return false;
+    }
     if (params.state && f.state.toUpperCase() !== params.state.toUpperCase()) return false;
     if (params.zip && !f.zip_code.startsWith(params.zip)) return false;
     if (params.name && !f.facility_name.toLowerCase().includes(params.name.toLowerCase())) return false;
@@ -108,6 +116,33 @@ export function groupByZip(facilities: Facility[], topN = 20) {
     }))
     .sort((a, b) => b.avgMortality - a.avgMortality)
     .slice(0, topN);
+}
+
+// Groups facilities by certification era (decade brackets) to show how
+// facility vintage correlates with mortality — a real time-based dimension in the data.
+export function groupByCertEra(facilities: Facility[]) {
+  const brackets: { label: string; min: number; max: number }[] = [
+    { label: "Before 1980", min: 0,    max: 1979 },
+    { label: "1980s",        min: 1980, max: 1989 },
+    { label: "1990s",        min: 1990, max: 1999 },
+    { label: "2000s",        min: 2000, max: 2009 },
+    { label: "2010–2014",    min: 2010, max: 2014 },
+    { label: "2015–2019",    min: 2015, max: 2019 },
+    { label: "2020+",        min: 2020, max: 9999 },
+  ];
+
+  return brackets
+    .map((b) => {
+      const vals = facilities
+        .filter((f) => f._cert_year !== null && f._cert_year >= b.min && f._cert_year <= b.max && f._mortality !== null)
+        .map((f) => f._mortality as number);
+      return {
+        era: b.label,
+        avgMortality: vals.length > 0 ? Math.round((vals.reduce((a, c) => a + c, 0) / vals.length) * 10) / 10 : 0,
+        count: vals.length,
+      };
+    })
+    .filter((b) => b.count > 0);
 }
 
 export function groupByMonth(facilities: Facility[]) {
