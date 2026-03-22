@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import type { Facility } from "./types";
 
 const CMS_API =
@@ -21,13 +20,24 @@ export function parseSMRDate(smr: string): { year: number | null; month: number 
   return { year, month };
 }
 
-async function fetchAllFacilities(): Promise<Facility[]> {
+// Module-level in-memory cache — persists across requests within the same server instance.
+// Refreshed after 1 hour to pick up CMS data updates.
+let cachedFacilities: Facility[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+export async function getAllFacilities(): Promise<Facility[]> {
+  const now = Date.now();
+  if (cachedFacilities && now - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedFacilities;
+  }
+
   const all: Facility[] = [];
   let offset = 0;
 
   while (true) {
     const url = `${CMS_API}?limit=${PAGE_SIZE}&offset=${offset}`;
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const res = await fetch(url);
     if (!res.ok) break;
     const json = await res.json();
     const results: Record<string, string>[] = json.results ?? [];
@@ -36,7 +46,8 @@ async function fetchAllFacilities(): Promise<Facility[]> {
     for (const r of results) {
       const { year, month } = parseSMRDate(r.smr_date ?? "");
       const mortStr = r.mortality_rate_facility?.trim();
-      const mortality = mortStr && mortStr !== "" ? parseFloat(mortStr) : null;
+      const mortalityRaw = mortStr && mortStr !== "" ? parseFloat(mortStr) : null;
+      const mortality = mortalityRaw !== null && !isNaN(mortalityRaw) ? mortalityRaw : null;
 
       all.push({
         facility_name: r.facility_name ?? "",
@@ -50,7 +61,7 @@ async function fetchAllFacilities(): Promise<Facility[]> {
         cms_certification_number_ccn: r.cms_certification_number_ccn ?? "",
         _year: year,
         _month: month,
-        _mortality: isNaN(mortality as number) ? null : mortality,
+        _mortality: mortality,
       });
     }
 
@@ -58,11 +69,7 @@ async function fetchAllFacilities(): Promise<Facility[]> {
     offset += PAGE_SIZE;
   }
 
+  cachedFacilities = all;
+  cacheTimestamp = now;
   return all;
 }
-
-export const getAllFacilities = unstable_cache(
-  fetchAllFacilities,
-  ["cms-dialysis-facilities"],
-  { revalidate: 3600, tags: ["cms-data"] }
-);

@@ -4,9 +4,10 @@ export function filterFacilities(
   facilities: Facility[],
   params: FilterParams
 ): Facility[] {
+  // NOTE: year/month filters are intentionally omitted — all CMS facilities share the
+  // same aggregate measurement period (Jan 2021 – Dec 2024), so those fields carry no
+  // discriminating value for filtering.
   return facilities.filter((f) => {
-    if (params.year && f._year !== parseInt(params.year, 10)) return false;
-    if (params.month && f._month !== parseInt(params.month, 10)) return false;
     if (params.state && f.state.toUpperCase() !== params.state.toUpperCase()) return false;
     if (params.zip && !f.zip_code.startsWith(params.zip)) return false;
     if (params.name && !f.facility_name.toLowerCase().includes(params.name.toLowerCase())) return false;

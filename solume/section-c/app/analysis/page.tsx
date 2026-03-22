@@ -53,7 +53,7 @@ function AnalysisPageContent() {
 
       {!loading && analysis && (
         <>
-          <MortalityTrendChart data={analysis.monthlyTrend} />
+          <MortalityTrendChart data={analysis.byState} nationalAvg={analysis.nationalAvg} />
 
           <div className="grid md:grid-cols-2 gap-6">
             <StateBarChart data={analysis.byState} nationalAvg={analysis.nationalAvg} />

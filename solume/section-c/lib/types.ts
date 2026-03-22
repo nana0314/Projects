@@ -15,8 +15,6 @@ export interface Facility {
 }
 
 export interface FilterParams {
-  year?: string;
-  month?: string;
   state?: string;
   zip?: string;
   name?: string;

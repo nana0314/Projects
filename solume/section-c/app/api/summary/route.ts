@@ -6,8 +6,6 @@ import type { SummaryResponse } from "@/lib/types";
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const params = {
-    year: searchParams.get("year") ?? undefined,
-    month: searchParams.get("month") ?? undefined,
     state: searchParams.get("state") ?? undefined,
     zip: searchParams.get("zip") ?? undefined,
     name: searchParams.get("name") ?? undefined,
