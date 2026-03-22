@@ -95,7 +95,7 @@ Given a tree with `n` nodes and integer `k`, compute the **kawaiiness** — the 
 
 ### How to Run
 
-inline input:
+Inline input:
 
 ```bash
 echo "1
