@@ -4,11 +4,13 @@ Submission for the Solume Medical coding assessment (deadline: 27 March 2026, 9:
 
 ## Structure
 
+
 | Folder       | Section               | Description                                              |
 | ------------ | --------------------- | -------------------------------------------------------- |
 | `section-a/` | Section A (Q A, B, C) | BMW Global Sales data analysis — Power BI (.pbix)        |
 | `section-b/` | Section B (Q D)       | Tree LCA kawaiiness algorithm — Python                   |
 | `section-c/` | Section C (Q E)       | CMS Dialysis Mortality full-stack app — Next.js + Vercel |
+
 
 ---
 
@@ -23,12 +25,15 @@ Open `section-a/bmw_analysis.pbix` in Power BI Desktop.
 ### Questions Answered
 
 **Question A**
+
 > How does BEV_Share growth over time (2018–2025) correlate with Units_Sold and Revenue_EUR across different regions, and which region shows the strongest transition toward electrification?
 
 **Question B**
+
 > Which models demonstrate the highest price elasticity, based on changes in Avg_Price_EUR vs Units_Sold, and how does this vary across economic conditions (GDP_Growth levels)?
 
 **Question C**
+
 > Can we identify seasonal patterns (Month-level trends) in Revenue_EUR and Units_Sold, and do these patterns interact differently with regional economic indicators (GDP_Growth, Fuel_Price_Index)?
 
 ---
@@ -36,13 +41,17 @@ Open `section-a/bmw_analysis.pbix` in Power BI Desktop.
 ### How It Was Built
 
 #### Step 1 — Power Query: Data Cleaning
+
 Three fixes applied before loading the data:
+
 - **Negative BEV_Share clamped to 0** — 9 rows had invalid negative values; replaced with 0 using a custom column
 - **Pre-launch i4/iX rows flagged** — 288 rows for i4/iX models before 2021 (pre-launch noise) were tagged with a `DataQualityFlag = "Pre-launch noise"` column; all analysis pages filter these out
 - **Column types corrected** — Year/Month as Whole Number, BEV_Share/GDP_Growth as Decimal, etc.
 
 #### Step 2 — Calculated Column
+
 A `GDP_Bucket` column was created in DAX to group economic conditions:
+
 ```
 GDP_Bucket =
 IF([GDP_Growth] < 2, "Low (<2%)",
@@ -52,12 +61,14 @@ IF([GDP_Growth] < 2, "Low (<2%)",
 
 #### Step 3 — Pages Built
 
-| Page | Content |
-|---|---|
-| **0 – Data Quality** | Cards for flagged vs clean row counts; table of pre-launch noise rows |
-| **1 – Question A** | BEV trend line, BEV vs Units_Sold, BEV vs Revenue_EUR, Region comparison matrix with conditional formatting |
-| **2 – Question B** | Price vs Demand scatter (all years), Units Sold by Model & GDP Bucket bar chart, Model × GDP_Bucket matrix |
-| **3 – Question C** | Monthly Revenue by Region, Monthly Units Sold by Region, Economic Indicators vs Revenue, Economic Indicators vs Units_Sold |
+
+| Page                 | Content                                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **0 – Data Quality** | Cards for flagged vs clean row counts; table of pre-launch noise rows                                                      |
+| **1 – Question A**   | BEV trend line, BEV vs Units_Sold, BEV vs Revenue_EUR, Region comparison matrix with conditional formatting                |
+| **2 – Question B**   | Price vs Demand scatter (all years), Units Sold by Model & GDP Bucket bar chart, Model × GDP_Bucket matrix                 |
+| **3 – Question C**   | Monthly Revenue by Region, Monthly Units Sold by Region, Economic Indicators vs Revenue, Economic Indicators vs Units_Sold |
+
 
 ---
 
@@ -65,9 +76,15 @@ IF([GDP_Growth] < 2, "Low (<2%)",
 
 **Question A:** All 4 regions (China, Europe, RestOfWorld, USA) follow a near-identical BEV_Share growth trajectory from 0.02 (2018) to ~0.19–0.20 (2025). Europe leads marginally at 0.20. The uniform growth across regions indicates a globally coordinated electrification strategy rather than a region-led shift. BEV_Share growth correlates positively with both Units_Sold growth and Revenue_EUR growth.
 
+![Question A Dashboard](section-a/screenshots/question-a.png)
+
 **Question B:** iX and X7 are the highest-priced models with the lowest unit volumes — showing the strongest negative price elasticity signal. Demand across all models responds noticeably to GDP conditions, with High GDP environments generally supporting higher average units sold, particularly for premium models (iX, i4, X7).
 
+![Question B Dashboard](section-a/screenshots/question-b.png)
+
 **Question C:** Clear seasonal peaks at months 3–4 (spring) and 11–12 (year-end) across all regions and both Revenue_EUR and Units_Sold. GDP_Growth loosely aligns with these cycles. Fuel_Price_Index shows minimal monthly variation and does not drive the seasonal pattern — the peaks are explained by consumer buying cycles (Q1 registrations and Q4 year-end deals) rather than fuel cost fluctuations.
+
+![Question C Dashboard](section-a/screenshots/question-c.png)
 
 ---
 
@@ -107,11 +124,13 @@ So: `f(r) = |{v : subtree_size_r(v) >= k}|`
 
 **Rerooting in O(n):** Root the tree at node 1. For each node `v` with subtree size `sub[v]`, count roots `r` where `subtree_size_r(v) >= k`:
 
+
 | Root `r` location       | subtree_size_r(v) | Count        | Contributes if    |
 | ----------------------- | ----------------- | ------------ | ----------------- |
 | Outside `sub[v]`        | `sub[v]`          | `n − sub[v]` | `sub[v] >= k`     |
 | `r = v`                 | `n`               | `1`          | always            |
 | Inside child `c` of `v` | `n − sub[c]`      | `sub[c]`     | `n − sub[c] >= k` |
+
 
 **Total per node v:** `[sub[v]>=k]*(n−sub[v]) + 1 + Σ_children_c [n−sub[c]>=k]*sub[c]`
 
@@ -119,12 +138,14 @@ So: `f(r) = |{v : subtree_size_r(v) >= k}|`
 
 ### Verified Examples
 
+
 | Input           | Expected | Got  |
 | --------------- | -------- | ---- |
 | n=2, k=2        | 2        | ✓ 2  |
 | n=5, k=3 (star) | 9        | ✓ 9  |
 | n=6, k=3        | 17       | ✓ 17 |
 | n=10, k=5       | 35       | ✓ 35 |
+
 
 ---
 
@@ -169,6 +190,7 @@ Open [http://localhost:3000](http://localhost:3000).
 #### Pages
 
 **Page 1 — Summary (`/`)**
+
 - Filters: Year, Month, State, ZIP code (prefix match), Facility Name (search)
 - Stats cards: total facilities, average / min / max mortality rate
 - Top 10 Highest & Lowest mortality facilities in the filtered set
@@ -176,6 +198,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Export CSV — downloads all filtered results as a `.csv` file
 
 **Page 2 — Analysis (`/analysis`)**
+
 - Mortality Rate Trend by Facility Certification Era — dual y-axis line chart
 - State comparison bar chart with national average reference line
 - Multi-state side-by-side selector — click state badges to compare
@@ -187,45 +210,59 @@ Open [http://localhost:3000](http://localhost:3000).
 
 All endpoints accept: `?year=&month=&state=&zip=&name=`
 
+
 | Endpoint                            | Returns                                                                                                    |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `GET /api/summary`                  | `{ total, avgMortality, minMortality, maxMortality, stdDev, outlierThreshold, top10Highest, top10Lowest }` |
 | `GET /api/table?page=1&pageSize=20` | `{ data[], page, pageSize, total }`                                                                        |
 | `GET /api/analysis`                 | `{ monthlyTrend[], byCertEra[], byState[], byZip[], distribution[], nationalAvg }`                         |
 
+
 ---
 
 ### Evaluation Criteria Coverage
 
 #### Backend
-| Criteria | Implementation |
-|---|---|
-| Clean API design | 3 focused endpoints, each returning only what the consuming component needs |
-| Correct filtering logic | All 5 params applied server-side; ZIP prefix match; name case-insensitive substring |
+
+
+| Criteria                | Implementation                                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| Clean API design        | 3 focused endpoints, each returning only what the consuming component needs                          |
+| Correct filtering logic | All 5 params applied server-side; ZIP prefix match; name case-insensitive substring                  |
 | Aggregation correctness | Mean, std dev, min/max, groupBy — computed on filtered subset; national avg always uses full dataset |
-| Edge cases | Null mortality values excluded; missing dates handled; NaN guarded; empty filter params ignored |
+| Edge cases              | Null mortality values excluded; missing dates handled; NaN guarded; empty filter params ignored      |
+
 
 #### Frontend
-| Criteria | Implementation |
-|---|---|
-| Clear UI structure | Two-page layout — Summary for raw data, Analysis for visual insights; shared Filters component at top |
-| Proper state management | `useState` + derived `filterString` + `useEffect` with `AbortController` to prevent stale data |
-| Good use of charts/tables | Line, bar, histogram, dual y-axis — each chosen for the specific data shape being visualised |
-| Responsive to filter changes | All visuals re-fetch on every filter change; loading skeletons shown during fetch |
+
+
+| Criteria                     | Implementation                                                                                        |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Clear UI structure           | Two-page layout — Summary for raw data, Analysis for visual insights; shared Filters component at top |
+| Proper state management      | `useState` + derived `filterString` + `useEffect` with `AbortController` to prevent stale data        |
+| Good use of charts/tables    | Line, bar, histogram, dual y-axis — each chosen for the specific data shape being visualised          |
+| Responsive to filter changes | All visuals re-fetch on every filter change; loading skeletons shown during fetch                     |
+
 
 #### Overall
-| Criteria | Implementation |
-|---|---|
-| Code organisation | `/app` (pages + API routes), `/components` (UI), `/lib` (data fetching + utils + types) |
-| Readability | TypeScript throughout; named types for all API responses; no magic numbers |
+
+
+| Criteria                   | Implementation                                                                                      |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| Code organisation          | `/app` (pages + API routes), `/components` (UI), `/lib` (data fetching + utils + types)             |
+| Readability                | TypeScript throughout; named types for all API responses; no magic numbers                          |
 | Simplicity over complexity | No database, no auth, no ORM — plain fetch + in-memory cache is sufficient for 7,557 static records |
+
 
 #### ⭐ Bonus Features
 
-| Feature | Status |
-|---|---|
-| Compare multiple states side-by-side | ✅ State badge picker in StateBarChart — click to add/remove states |
-| Export filtered results (CSV) | ✅ Export CSV button on Summary page — downloads all filtered rows |
-| Caching / performance optimisation | ✅ Module-level in-memory cache with 1-hour TTL; `AbortController` cancels stale requests |
-| Highlight outliers | ✅ Red **Outlier** badge on table rows above mean + 2×std dev; distribution histogram highlights outlier buckets |
-| Show national vs state averages | ✅ National average reference line on state bar chart; national avg shown in ZIP and era charts via dual y-axis |
+
+| Feature                              | Status                                                                                                          |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Compare multiple states side-by-side | ✅ State badge picker in StateBarChart — click to add/remove states                                              |
+| Export filtered results (CSV)        | ✅ Export CSV button on Summary page — downloads all filtered rows                                               |
+| Caching / performance optimisation   | ✅ Module-level in-memory cache with 1-hour TTL; `AbortController` cancels stale requests                        |
+| Highlight outliers                   | ✅ Red **Outlier** badge on table rows above mean + 2×std dev; distribution histogram highlights outlier buckets |
+| Show national vs state averages      | ✅ National average reference line on state bar chart; national avg shown in ZIP and era charts via dual y-axis  |
+
+
