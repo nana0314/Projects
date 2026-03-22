@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
+  ResponsiveContainer,
 } from "recharts";
 
 // Default 6 geographically & demographically representative states
@@ -72,7 +72,7 @@ export default function StateBarChart({ data, nationalAvg }: Props) {
       {nationalAvg !== null && (
         <div className="flex items-center gap-2 mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
           <span className="inline-block w-6 border-t-2 border-dashed border-amber-500" />
-          National average: <strong>{nationalAvg}</strong> — dashed line on chart
+          National average: <strong>{nationalAvg}</strong>
         </div>
       )}
 
@@ -119,14 +119,6 @@ export default function StateBarChart({ data, nationalAvg }: Props) {
               labelFormatter={(l) => `State: ${l}`}
               contentStyle={{ fontSize: 13 }}
             />
-            {nationalAvg !== null && (
-              <ReferenceLine
-                y={nationalAvg}
-                stroke="#f59e0b"
-                strokeWidth={2.5}
-                strokeDasharray="6 3"
-              />
-            )}
             <Bar dataKey="avgMortality" name="Avg Mortality Rate" fill="#3b82f6" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

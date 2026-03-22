@@ -2,7 +2,7 @@
 
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Legend,
+  ResponsiveContainer, Legend,
 } from "recharts";
 
 interface Props {
@@ -18,8 +18,7 @@ export default function MortalityTrendChart({ data, nationalAvg }: Props) {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <h3 className="font-semibold text-gray-800 mb-1">Mortality Rate Trend by Facility Era</h3>
       <p className="text-xs text-gray-400 mb-4">
-        Average mortality rate grouped by facility certification decade ·
-        {nationalAvg !== null ? ` national avg: ${nationalAvg}` : ""}
+        Average mortality rate grouped by facility certification decade
       </p>
       {data.length === 0 ? (
         <div className="h-48 flex items-center justify-center text-gray-300 text-sm">No data</div>
@@ -36,14 +35,6 @@ export default function MortalityTrendChart({ data, nationalAvg }: Props) {
               labelFormatter={(l) => `Era: ${l}`}
             />
             <Legend />
-            {nationalAvg !== null && (
-              <ReferenceLine
-                y={nationalAvg}
-                stroke="#f59e0b"
-                strokeDasharray="4 4"
-                label={{ value: `Nat. avg: ${nationalAvg}`, position: "insideTopRight", fontSize: 11, fill: "#b45309" }}
-              />
-            )}
             <Line
               type="monotone"
               dataKey="avgMortality"

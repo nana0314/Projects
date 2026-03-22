@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
+  ResponsiveContainer,
 } from "recharts";
 
 interface ZipData {
@@ -105,14 +105,6 @@ export default function ZipBarChart({ data, nationalAvg }: Props) {
               labelFormatter={(l) => `ZIP: ${l}`}
               contentStyle={{ fontSize: 13 }}
             />
-            {nationalAvg != null && (
-              <ReferenceLine
-                x={nationalAvg}
-                stroke="#f59e0b"
-                strokeWidth={2.5}
-                strokeDasharray="6 3"
-              />
-            )}
             <Bar dataKey="avgMortality" fill="#8b5cf6" name="Avg Mortality Rate" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>

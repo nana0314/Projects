@@ -20,7 +20,7 @@ function SummaryPageContent() {
 
   useEffect(() => {
     setLoadingSummary(true);
-    fetch(`/api/summary?${filterString}`)
+    fetch(`/api/summary?${filterString}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => { setSummary(data); setLoadingSummary(false); })
       .catch(() => setLoadingSummary(false));
@@ -28,7 +28,7 @@ function SummaryPageContent() {
 
   useEffect(() => {
     setLoadingTable(true);
-    fetch(`/api/table?${filterString}`)
+    fetch(`/api/table?${filterString}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => { setTable(data); setLoadingTable(false); })
       .catch(() => setLoadingTable(false));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 // certification_date in the CMS dataset ranges from 1968 to 2025.
@@ -26,6 +26,7 @@ const US_STATES = [
 
 export default function Filters() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const setParam = useCallback(
@@ -33,12 +34,12 @@ export default function Filters() {
       const params = new URLSearchParams(searchParams.toString());
       if (value) { params.set(key, value); } else { params.delete(key); }
       params.delete("page");
-      router.push("?" + params.toString());
+      router.push(`${pathname}?${params.toString()}`);
     },
-    [router, searchParams]
+    [router, pathname, searchParams]
   );
 
-  const clear = () => router.push("?");
+  const clear = () => router.push(pathname);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">

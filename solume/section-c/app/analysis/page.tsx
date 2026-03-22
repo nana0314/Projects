@@ -22,8 +22,8 @@ function AnalysisPageContent() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`/api/analysis?${filterString}`).then((r) => r.json()),
-      fetch(`/api/summary?${filterString}`).then((r) => r.json()),
+      fetch(`/api/analysis?${filterString}`, { cache: "no-store" }).then((r) => r.json()),
+      fetch(`/api/summary?${filterString}`, { cache: "no-store" }).then((r) => r.json()),
     ])
       .then(([a, s]) => {
         setAnalysis(a);
