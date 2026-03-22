@@ -8,8 +8,8 @@ Submission for the Solume Medical coding assessment (deadline: 27 March 2026, 9:
 | Folder       | Section               | Description                                              |
 | ------------ | --------------------- | -------------------------------------------------------- |
 | `section-a/` | Section A (Q A, B, C) | BMW Global Sales data analysis — Power BI (.pbix)        |
-| `section-b/` | Section B (Q D)       | Tree LCA kawaiiness algorithm — Python                   |
-| `section-c/` | Section C (Q E)       | CMS Dialysis Mortality full-stack app — Next.js + Vercel |
+| `section-b/` | Section B             | Tree LCA kawaiiness algorithm — Python                   |
+| `section-c/` | Section C             | CMS Dialysis Mortality full-stack app — Next.js + Vercel |
 
 
 ---
