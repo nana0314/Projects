@@ -4,26 +4,70 @@ Submission for the Solume Medical coding assessment (deadline: 27 March 2026, 9:
 
 ## Structure
 
-
 | Folder       | Section               | Description                                              |
 | ------------ | --------------------- | -------------------------------------------------------- |
 | `section-a/` | Section A (Q A, B, C) | BMW Global Sales data analysis — Power BI (.pbix)        |
 | `section-b/` | Section B (Q D)       | Tree LCA kawaiiness algorithm — Python                   |
 | `section-c/` | Section C (Q E)       | CMS Dialysis Mortality full-stack app — Next.js + Vercel |
 
-
 ---
 
 ## Section A — Data Analysis (Power BI)
 
+**Dataset:** `BMW_global_sales_2018-2025.zip` → `bmw_global_sales_2018_2025.csv`
+
 Open `section-a/bmw_analysis.pbix` in Power BI Desktop.
 
-The file contains 4 pages:
+---
 
-- **Page 0 – Data Quality**: flags 9 negative BEV_Share rows and 288 pre-launch i4/iX rows found in the dataset.
-- **Page 1 – Question A**: BEV_Share electrification trend and correlation with Units_Sold and Revenue_EUR by region (2018–2025).
-- **Page 2 – Question B**: Price elasticity by model across GDP growth conditions.
-- **Page 3 – Question C**: Seasonal patterns in Revenue_EUR and Units_Sold and their interaction with GDP_Growth and Fuel_Price_Index.
+### Questions Answered
+
+**Question A**
+> How does BEV_Share growth over time (2018–2025) correlate with Units_Sold and Revenue_EUR across different regions, and which region shows the strongest transition toward electrification?
+
+**Question B**
+> Which models demonstrate the highest price elasticity, based on changes in Avg_Price_EUR vs Units_Sold, and how does this vary across economic conditions (GDP_Growth levels)?
+
+**Question C**
+> Can we identify seasonal patterns (Month-level trends) in Revenue_EUR and Units_Sold, and do these patterns interact differently with regional economic indicators (GDP_Growth, Fuel_Price_Index)?
+
+---
+
+### How It Was Built
+
+#### Step 1 — Power Query: Data Cleaning
+Three fixes applied before loading the data:
+- **Negative BEV_Share clamped to 0** — 9 rows had invalid negative values; replaced with 0 using a custom column
+- **Pre-launch i4/iX rows flagged** — 288 rows for i4/iX models before 2021 (pre-launch noise) were tagged with a `DataQualityFlag = "Pre-launch noise"` column; all analysis pages filter these out
+- **Column types corrected** — Year/Month as Whole Number, BEV_Share/GDP_Growth as Decimal, etc.
+
+#### Step 2 — Calculated Column
+A `GDP_Bucket` column was created in DAX to group economic conditions:
+```
+GDP_Bucket =
+IF([GDP_Growth] < 2, "Low (<2%)",
+   IF([GDP_Growth] <= 4, "Medium (2–4%)",
+   "High (>4%)"))
+```
+
+#### Step 3 — Pages Built
+
+| Page | Content |
+|---|---|
+| **0 – Data Quality** | Cards for flagged vs clean row counts; table of pre-launch noise rows |
+| **1 – Question A** | BEV trend line, BEV vs Units_Sold, BEV vs Revenue_EUR, Region comparison matrix with conditional formatting |
+| **2 – Question B** | Price vs Demand scatter (all years), Units Sold by Model & GDP Bucket bar chart, Model × GDP_Bucket matrix |
+| **3 – Question C** | Monthly Revenue by Region, Monthly Units Sold by Region, Economic Indicators vs Revenue, Economic Indicators vs Units_Sold |
+
+---
+
+### Key Findings
+
+**Question A:** All 4 regions (China, Europe, RestOfWorld, USA) follow a near-identical BEV_Share growth trajectory from 0.02 (2018) to ~0.19–0.20 (2025). Europe leads marginally at 0.20. The uniform growth across regions indicates a globally coordinated electrification strategy rather than a region-led shift. BEV_Share growth correlates positively with both Units_Sold growth and Revenue_EUR growth.
+
+**Question B:** iX and X7 are the highest-priced models with the lowest unit volumes — showing the strongest negative price elasticity signal. Demand across all models responds noticeably to GDP conditions, with High GDP environments generally supporting higher average units sold, particularly for premium models (iX, i4, X7).
+
+**Question C:** Clear seasonal peaks at months 3–4 (spring) and 11–12 (year-end) across all regions and both Revenue_EUR and Units_Sold. GDP_Growth loosely aligns with these cycles. Fuel_Price_Index shows minimal monthly variation and does not drive the seasonal pattern — the peaks are explained by consumer buying cycles (Q1 registrations and Q4 year-end deals) rather than fuel cost fluctuations.
 
 ---
 
@@ -63,13 +107,11 @@ So: `f(r) = |{v : subtree_size_r(v) >= k}|`
 
 **Rerooting in O(n):** Root the tree at node 1. For each node `v` with subtree size `sub[v]`, count roots `r` where `subtree_size_r(v) >= k`:
 
-
 | Root `r` location       | subtree_size_r(v) | Count        | Contributes if    |
 | ----------------------- | ----------------- | ------------ | ----------------- |
 | Outside `sub[v]`        | `sub[v]`          | `n − sub[v]` | `sub[v] >= k`     |
 | `r = v`                 | `n`               | `1`          | always            |
 | Inside child `c` of `v` | `n − sub[c]`      | `sub[c]`     | `n − sub[c] >= k` |
-
 
 **Total per node v:** `[sub[v]>=k]*(n−sub[v]) + 1 + Σ_children_c [n−sub[c]>=k]*sub[c]`
 
@@ -77,14 +119,12 @@ So: `f(r) = |{v : subtree_size_r(v) >= k}|`
 
 ### Verified Examples
 
-
-| Input           | Expected | Got                        |
-| --------------- | -------- | -------------------------- |
-| n=2, k=2        | 2        | ✓ 2                        |
-| n=5, k=3 (star) | 9        | ✓ 9                        |
-| n=6, k=3        | 17       | ✓ 17                       |
-| n=10, k=5       | 35       | ✓ 35                       |
-
+| Input           | Expected | Got  |
+| --------------- | -------- | ---- |
+| n=2, k=2        | 2        | ✓ 2  |
+| n=5, k=3 (star) | 9        | ✓ 9  |
+| n=6, k=3        | 17       | ✓ 17 |
+| n=10, k=5       | 35       | ✓ 35 |
 
 ---
 
@@ -92,7 +132,7 @@ So: `f(r) = |{v : subtree_size_r(v) >= k}|`
 
 **Live URL:** [https://section-c-xi.vercel.app](https://section-c-xi.vercel.app)
 
-A full-stack web application for analysing dialysis facility mortality rates using publicly available CMS data.
+A full-stack web application for analysing CMS dialysis facility mortality rates across the United States.
 
 ### Run Locally
 
@@ -106,51 +146,86 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Pages
+---
+
+### How It Was Built
+
+#### Backend
+
+- **API routes** built with Next.js App Router (`/app/api/`), deployed as serverless functions on Vercel
+- **Data source**: CMS public REST API (`data.cms.gov`) — 7,557 dialysis facilities fetched in paginated batches of 1,000
+- **In-memory cache**: module-level cache with 1-hour TTL means the CMS API is called at most once per hour per server instance, not on every request
+- **Filtering**: all 5 filter params (`year`, `month`, `state`, `zip`, `name`) applied server-side via `filterFacilities()` — ZIP uses prefix matching, name uses case-insensitive substring match
+- **Aggregations**: mean, min, max, std dev, outlier threshold (mean + 2×std dev), grouping by state/ZIP/cert era/distribution buckets — all computed in a single pass over the filtered dataset
+- **Edge cases handled**: empty `mortality_rate_facility` strings treated as null and excluded from all aggregations; missing cert dates handled gracefully; invalid numeric values (NaN) filtered out
+
+#### Frontend
+
+- **Framework**: Next.js 15 App Router, TypeScript, Tailwind CSS
+- **State management**: filter state held in React `useState` — `filterString` derived value passed as `useEffect` dependency triggers re-fetch automatically on any filter change; `AbortController` used to cancel stale in-flight requests
+- **Charts**: Recharts — `LineChart`, `BarChart`, `ComposedChart`, `ResponsiveContainer`; dual y-axis used where metrics have different scales
+- **Responsive to filters**: all charts, cards, tables and the export re-query the API on every filter change with no page reload
+
+#### Pages
 
 **Page 1 — Summary (`/`)**
-
-- **Filters**: Year, Month, State, ZIP code (prefix match), Facility Name (search)
-- **Stats**: Total facilities, average / min / max mortality rate
-- **Top 10 Highest & Lowest** mortality facilities in the filtered set
-- **Full paginated table** — 20 rows per page, sorted by mortality descending; facilities above mean + 2×std dev flagged with a red **Outlier** badge
-- **Export CSV** — downloads all filtered results as a CSV file
+- Filters: Year, Month, State, ZIP code (prefix match), Facility Name (search)
+- Stats cards: total facilities, average / min / max mortality rate
+- Top 10 Highest & Lowest mortality facilities in the filtered set
+- Full paginated table — 20 rows per page, sorted by mortality descending
+- Export CSV — downloads all filtered results as a `.csv` file
 
 **Page 2 — Analysis (`/analysis`)**
+- Mortality Rate Trend by Facility Certification Era — dual y-axis line chart
+- State comparison bar chart with national average reference line
+- Multi-state side-by-side selector — click state badges to compare
+- ZIP code comparison — horizontal bar chart, top ZIP codes by avg mortality
+- Distribution histogram — mortality buckets with outlier zones highlighted
+- Facility ranking table — sorted by avg mortality, shows diff vs national avg
 
-- **Monthly trend** — line chart of average mortality by measurement start month
-- **State comparison** — bar chart with national average reference line; bars above national avg are red
-- **Multi-state side-by-side** — click state badges to compare specific states
-- **ZIP code comparison** — horizontal bar chart of top 20 ZIP codes by avg mortality
-- **Distribution histogram** — facility counts per mortality bucket; outlier buckets highlighted red
-- **Facility ranking table** — sortable by state, avg mortality, facility count; shows diff vs national avg
+#### API Endpoints
 
-### API Endpoints
-
-All endpoints accept query params: `?year=&month=&state=&zip=&name=`
-
+All endpoints accept: `?year=&month=&state=&zip=&name=`
 
 | Endpoint                            | Returns                                                                                                    |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `GET /api/summary`                  | `{ total, avgMortality, minMortality, maxMortality, stdDev, outlierThreshold, top10Highest, top10Lowest }` |
 | `GET /api/table?page=1&pageSize=20` | `{ data[], page, pageSize, total }`                                                                        |
-| `GET /api/analysis`                 | `{ monthlyTrend[], byState[], byZip[], distribution[], nationalAvg }`                                      |
+| `GET /api/analysis`                 | `{ monthlyTrend[], byCertEra[], byState[], byZip[], distribution[], nationalAvg }`                         |
 
+---
 
-### Architectural Decisions
+### Evaluation Criteria Coverage
 
-**No database.** The CMS dataset has 7,557 facilities — small enough to fetch via the public REST API and hold in memory. `unstable_cache` with 1-hour revalidation means the CMS API is called at most once per hour, not on every request.
+#### Backend
+| Criteria | Implementation |
+|---|---|
+| Clean API design | 3 focused endpoints, each returning only what the consuming component needs |
+| Correct filtering logic | All 5 params applied server-side; ZIP prefix match; name case-insensitive substring |
+| Aggregation correctness | Mean, std dev, min/max, groupBy — computed on filtered subset; national avg always uses full dataset |
+| Edge cases | Null mortality values excluded; missing dates handled; NaN guarded; empty filter params ignored |
 
-**Next.js API routes as backend.** No separate server needed — API routes deploy as serverless functions on Vercel automatically alongside the frontend.
+#### Frontend
+| Criteria | Implementation |
+|---|---|
+| Clear UI structure | Two-page layout — Summary for raw data, Analysis for visual insights; shared Filters component at top |
+| Proper state management | `useState` + derived `filterString` + `useEffect` with `AbortController` to prevent stale data |
+| Good use of charts/tables | Line, bar, histogram, dual y-axis — each chosen for the specific data shape being visualised |
+| Responsive to filter changes | All visuals re-fetch on every filter change; loading skeletons shown during fetch |
 
-**URL search params for filter state.** All filters are stored in the URL (`?year=2024&state=CA`), making combinations shareable, supporting browser back/forward, and removing the need for a submit button.
+#### Overall
+| Criteria | Implementation |
+|---|---|
+| Code organisation | `/app` (pages + API routes), `/components` (UI), `/lib` (data fetching + utils + types) |
+| Readability | TypeScript throughout; named types for all API responses; no magic numbers |
+| Simplicity over complexity | No database, no auth, no ORM — plain fetch + in-memory cache is sufficient for 7,557 static records |
 
-**Recharts over D3.** Composable React chart components with good defaults — no extra complexity needed for the charts required here.
+#### ⭐ Bonus Features
 
-### Data Notes
-
-- `mortality_rate_facility` is a Standardised Mortality Ratio (SMR) — empty strings treated as null and excluded from aggregations.
-- `smr_date` (e.g. `"01Jan2021-31Dec2024"`) is parsed to extract the start year and month for filtering.
-- ZIP filter uses prefix matching (e.g. `902` matches `90210`, `90211`, etc.).
-- Outlier threshold = mean + 2×standard deviation of the filtered set.
-
+| Feature | Status |
+|---|---|
+| Compare multiple states side-by-side | ✅ State badge picker in StateBarChart — click to add/remove states |
+| Export filtered results (CSV) | ✅ Export CSV button on Summary page — downloads all filtered rows |
+| Caching / performance optimisation | ✅ Module-level in-memory cache with 1-hour TTL; `AbortController` cancels stale requests |
+| Highlight outliers | ✅ Red **Outlier** badge on table rows above mean + 2×std dev; distribution histogram highlights outlier buckets |
+| Show national vs state averages | ✅ National average reference line on state bar chart; national avg shown in ZIP and era charts via dual y-axis |
