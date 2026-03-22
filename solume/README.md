@@ -169,7 +169,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - **API routes** built with Next.js App Router (`/app/api/`), deployed as serverless functions on Vercel
 - **Data source**: CMS public REST API (`data.cms.gov`) — 7,557 dialysis facilities fetched in paginated batches of 1,000
-- **In-memory cache**: module-level cache with 1-hour TTL means the CMS API is called at most once per hour per server instance, not on every request
+- **In-memory cache**: module-level cache with 1-hour TTL means the CMS API is called at most once per hour per server instance, not on every request. Have **AbortController** to cancel old requests
 - **Filtering**: all 5 filter params (`year`, `month`, `state`, `zip`, `name`) applied server-side via `filterFacilities()` — ZIP uses prefix matching, name uses case-insensitive substring match
 - **Aggregations**: mean, min, max, std dev, outlier threshold (mean + 2×std dev), grouping by state/ZIP/cert era/distribution buckets — all computed in a single pass over the filtered dataset
 - **Edge cases handled**: empty `mortality_rate_facility` strings treated as null and excluded from all aggregations; missing cert dates handled gracefully; invalid numeric values (NaN) filtered out
@@ -226,50 +226,5 @@ The raw CMS API returns `mortality_rate_facility` as a string field. For facilit
 `smr_date` (e.g. `"01Jan2021-31Dec2024"`) represents the measurement window — the 3-year rolling period over which the SMR was calculated. Every facility in the current dataset shares the same or very similar `smr_date` range, so filtering by it would either return everything or nothing and would not be meaningful to users. `certification_date` (e.g. `"2015-03-15"`) is the date each facility was certified by CMS and varies across all facilities from 1968 to 2025. This is the only date field that meaningfully differs between records and allows users to explore how mortality patterns vary by facility age/era — which is also what drives the "Mortality Rate Trend by Facility Era" chart on the Analysis page.
 
 ---
-
-### Evaluation Criteria Coverage
-
-#### Backend
-
-
-| Criteria                | Implementation                                                                                       |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- |
-| Clean API design        | 3 focused endpoints, each returning only what the consuming component needs                          |
-| Correct filtering logic | All 5 params applied server-side; ZIP prefix match; name case-insensitive substring                  |
-| Aggregation correctness | Mean, std dev, min/max, groupBy — computed on filtered subset; national avg always uses full dataset |
-| Edge cases              | Null mortality values excluded; missing dates handled; NaN guarded; empty filter params ignored      |
-
-
-#### Frontend
-
-
-| Criteria                     | Implementation                                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Clear UI structure           | Two-page layout — Summary for raw data, Analysis for visual insights; shared Filters component at top |
-| Proper state management      | `useState` + derived `filterString` + `useEffect` with `AbortController` to prevent stale data        |
-| Good use of charts/tables    | Line, bar, histogram, dual y-axis — each chosen for the specific data shape being visualised          |
-| Responsive to filter changes | All visuals re-fetch on every filter change; loading skeletons shown during fetch                     |
-
-
-#### Overall
-
-
-| Criteria                   | Implementation                                                                                      |
-| -------------------------- | --------------------------------------------------------------------------------------------------- |
-| Code organisation          | `/app` (pages + API routes), `/components` (UI), `/lib` (data fetching + utils + types)             |
-| Readability                | TypeScript throughout; named types for all API responses; no magic numbers                          |
-| Simplicity over complexity | No database, no auth, no ORM — plain fetch + in-memory cache is sufficient for 7,557 static records |
-
-
-#### ⭐ Bonus Features
-
-
-| Feature                              | Status                                                                                                          |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Compare multiple states side-by-side | ✅ State badge picker in StateBarChart — click to add/remove states                                              |
-| Export filtered results (CSV)        | ✅ Export CSV button on Summary page — downloads all filtered rows                                               |
-| Caching / performance optimisation   | ✅ Module-level in-memory cache with 1-hour TTL; `AbortController` cancels stale requests                        |
-| Highlight outliers                   | ✅ Red **Outlier** badge on table rows above mean + 2×std dev; distribution histogram highlights outlier buckets |
-| Show national vs state averages      | ✅ National average reference line on state bar chart; national avg shown in ZIP and era charts via dual y-axis  |
 
 
