@@ -64,7 +64,6 @@ IF([GDP_Growth] < 2, "Low (<2%)",
 
 | Page                 | Content                                                                                                                    |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **0 – Data Quality** | Cards for flagged vs clean row counts; table of pre-launch noise rows                                                      |
 | **1 – Question A**   | BEV trend line, BEV vs Units_Sold, BEV vs Revenue_EUR, Region comparison matrix with conditional formatting                |
 | **2 – Question B**   | Price vs Demand scatter (all years), Units Sold by Model & GDP Bucket bar chart, Model × GDP_Bucket matrix                 |
 | **3 – Question C**   | Monthly Revenue by Region, Monthly Units Sold by Region, Economic Indicators vs Revenue, Economic Indicators vs Units_Sold |
