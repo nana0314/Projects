@@ -54,12 +54,6 @@ export default function ZipBarChart({ data, nationalAvg }: Props) {
             {selected.length} ZIP code{selected.length !== 1 ? "s" : ""} selected — click to add or remove
           </p>
         </div>
-        <button
-          onClick={resetToDefault}
-          className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap ml-4"
-        >
-          Reset
-        </button>
       </div>
 
       {/* ZIP picker pills */}

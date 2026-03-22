@@ -22,17 +22,19 @@ export default function AnalysisPage() {
   ).toString();
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     Promise.all([
-      fetch(`/api/analysis${filterString ? `?${filterString}` : ""}`, { cache: "no-store" }).then((r) => r.json()),
-      fetch(`/api/summary${filterString ? `?${filterString}` : ""}`, { cache: "no-store" }).then((r) => r.json()),
+      fetch(`/api/analysis${filterString ? `?${filterString}` : ""}`, { cache: "no-store", signal: controller.signal }).then((r) => r.json()),
+      fetch(`/api/summary${filterString ? `?${filterString}` : ""}`, { cache: "no-store", signal: controller.signal }).then((r) => r.json()),
     ])
       .then(([a, s]) => {
         setAnalysis(a);
         setSummary(s);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => { if (err.name !== "AbortError") setLoading(false); });
+    return () => controller.abort();
   }, [filterString]);
 
   return (

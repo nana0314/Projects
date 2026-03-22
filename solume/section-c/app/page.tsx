@@ -27,21 +27,25 @@ export default function SummaryPage() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoadingSummary(true);
-    fetch(`/api/summary${filterString ? `?${filterString}` : ""}`, { cache: "no-store" })
+    fetch(`/api/summary${filterString ? `?${filterString}` : ""}`, { cache: "no-store", signal: controller.signal })
       .then((r) => r.json())
       .then((data) => { setSummary(data); setLoadingSummary(false); })
-      .catch(() => setLoadingSummary(false));
+      .catch((err) => { if (err.name !== "AbortError") setLoadingSummary(false); });
+    return () => controller.abort();
   }, [filterString]);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoadingTable(true);
     const qs = new URLSearchParams(filterString ? filterString : undefined);
     qs.set("page", String(page));
-    fetch(`/api/table?${qs.toString()}`, { cache: "no-store" })
+    fetch(`/api/table?${qs.toString()}`, { cache: "no-store", signal: controller.signal })
       .then((r) => r.json())
       .then((data) => { setTable(data); setLoadingTable(false); })
-      .catch(() => setLoadingTable(false));
+      .catch((err) => { if (err.name !== "AbortError") setLoadingTable(false); });
+    return () => controller.abort();
   }, [filterString, page]);
 
   return (

@@ -27,7 +27,7 @@ export default function MortalityTrendChart({ data, nationalAvg }: Props) {
           <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="era" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 12 }} domain={["auto", "auto"]} />
+            <YAxis tick={{ fontSize: 12 }} domain={[15, 35]} />
             <Tooltip
               formatter={(val, name) => name === "count"
                 ? [`${val} facilities`, "Facilities"]

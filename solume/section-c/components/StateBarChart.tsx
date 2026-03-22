@@ -61,12 +61,6 @@ export default function StateBarChart({ data, nationalAvg }: Props) {
             {selected.length} state{selected.length !== 1 ? "s" : ""} selected — click to add or remove
           </p>
         </div>
-        <button
-          onClick={resetToDefault}
-          className="text-xs text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap ml-4"
-        >
-          Reset
-        </button>
       </div>
 
       {nationalAvg !== null && (
