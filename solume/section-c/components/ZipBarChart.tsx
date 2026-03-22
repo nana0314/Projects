@@ -83,6 +83,13 @@ export default function ZipBarChart({ data, nationalAvg }: Props) {
         })}
       </div>
 
+      {nationalAvg != null && (
+        <div className="flex items-center gap-2 mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+          <span className="inline-block w-6 border-t-2 border-dashed border-amber-500" />
+          National average: <strong>{nationalAvg}</strong>
+        </div>
+      )}
+
       {displayData.length === 0 ? (
         <div className="h-48 flex items-center justify-center text-gray-300 text-sm">
           Select at least one ZIP code above
@@ -102,9 +109,8 @@ export default function ZipBarChart({ data, nationalAvg }: Props) {
               <ReferenceLine
                 x={nationalAvg}
                 stroke="#f59e0b"
-                strokeDasharray="4 4"
-                strokeWidth={2}
-                label={{ value: `Nat. avg: ${nationalAvg}`, fontSize: 11, fill: "#b45309" }}
+                strokeWidth={2.5}
+                strokeDasharray="6 3"
               />
             )}
             <Bar dataKey="avgMortality" fill="#8b5cf6" name="Avg Mortality Rate" radius={[0, 4, 4, 0]} />

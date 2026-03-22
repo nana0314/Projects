@@ -4,18 +4,12 @@ export function filterFacilities(
   facilities: Facility[],
   params: FilterParams
 ): Facility[] {
-  // Year filter: the CMS SMR measurement period is 01Jan2021-31Dec2024.
-  // A facility's data is "in" a year if that year falls within its smr window.
-  // Since all facilities share the same window, selecting 2021-2024 returns everything;
-  // selecting outside that range returns nothing — which is the correct honest behaviour.
+  // Year and month filters are based on each facility's certification_date
+  // (format: "YYYY-MM-DD"), which ranges from 1968 to 2025 and varies per facility.
+  // This is the only date field that differs between records and allows meaningful filtering.
   return facilities.filter((f) => {
-    if (params.year) {
-      const y = parseInt(params.year, 10);
-      const startYear = f._year ?? 0;
-      // smr_date is always "01Jan{startYear}-31Dec{startYear+3}"
-      const endYear = startYear + 3;
-      if (y < startYear || y > endYear) return false;
-    }
+    if (params.year  && f._cert_year  !== parseInt(params.year,  10)) return false;
+    if (params.month && f._cert_month !== parseInt(params.month, 10)) return false;
     if (params.state && f.state.toUpperCase() !== params.state.toUpperCase()) return false;
     if (params.zip && !f.zip_code.startsWith(params.zip)) return false;
     if (params.name && !f.facility_name.toLowerCase().includes(params.name.toLowerCase())) return false;

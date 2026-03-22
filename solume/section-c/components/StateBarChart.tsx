@@ -58,7 +58,6 @@ export default function StateBarChart({ data, nationalAvg }: Props) {
         <div>
           <h3 className="font-semibold text-gray-800">Mortality Comparison by State</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            {nationalAvg !== null ? `National avg: ${nationalAvg} · ` : ""}
             {selected.length} state{selected.length !== 1 ? "s" : ""} selected — click to add or remove
           </p>
         </div>
@@ -69,6 +68,13 @@ export default function StateBarChart({ data, nationalAvg }: Props) {
           Reset
         </button>
       </div>
+
+      {nationalAvg !== null && (
+        <div className="flex items-center gap-2 mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+          <span className="inline-block w-6 border-t-2 border-dashed border-amber-500" />
+          National average: <strong>{nationalAvg}</strong> — dashed line on chart
+        </div>
+      )}
 
       {/* State picker pills */}
       <div className="flex flex-wrap gap-1.5 mb-4 max-h-28 overflow-y-auto pr-1">
@@ -117,9 +123,8 @@ export default function StateBarChart({ data, nationalAvg }: Props) {
               <ReferenceLine
                 y={nationalAvg}
                 stroke="#f59e0b"
-                strokeDasharray="4 4"
-                strokeWidth={2}
-                label={{ value: `Nat. avg: ${nationalAvg}`, position: "insideTopRight", fontSize: 11, fill: "#b45309" }}
+                strokeWidth={2.5}
+                strokeDasharray="6 3"
               />
             )}
             <Bar dataKey="avgMortality" name="Avg Mortality Rate" fill="#3b82f6" radius={[4, 4, 0, 0]} />

@@ -13,11 +13,13 @@ export interface Facility {
   _year: number | null;       // start year of smr_date window
   _month: number | null;      // start month of smr_date window
   _mortality: number | null;
-  _cert_year: number | null;  // year extracted from certification_date
+  _cert_year: number | null;   // year  extracted from certification_date
+  _cert_month: number | null;  // month extracted from certification_date
 }
 
 export interface FilterParams {
-  year?: string;   // Must fall within the facility's smr_date window (2021-2024)
+  year?: string;   // Matches facility's certification year (1968-2025)
+  month?: string;  // Matches facility's certification month (1-12)
   state?: string;
   zip?: string;
   name?: string;
