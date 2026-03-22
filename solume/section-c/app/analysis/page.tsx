@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Filters from "@/components/Filters";
+import PageNav from "@/components/PageNav";
 import MortalityTrendChart from "@/components/MortalityTrendChart";
 import StateBarChart from "@/components/StateBarChart";
 import ZipBarChart from "@/components/ZipBarChart";
@@ -34,11 +35,14 @@ function AnalysisPageContent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Analysis</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Visual insights into dialysis facility mortality patterns
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Analysis</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Visual insights into dialysis facility mortality patterns
+          </p>
+        </div>
+        <PageNav />
       </div>
 
       <Filters />

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Dialysis Mortality Analysis",
@@ -18,20 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="text-lg font-bold text-gray-900">Dialysis Mortality</span>
                 <span className="text-xs text-gray-400 hidden sm:inline">CMS Facility Data</span>
               </div>
-              <nav className="flex gap-1">
-                <Link
-                  href="/"
-                  className="px-4 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  Summary
-                </Link>
-                <Link
-                  href="/analysis"
-                  className="px-4 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  Analysis
-                </Link>
-              </nav>
             </div>
           </div>
         </header>
