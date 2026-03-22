@@ -29,7 +29,7 @@ export default function MortalityTrendChart({ data, nationalAvg }: Props) {
             <XAxis dataKey="era" tick={{ fontSize: 11 }} />
             <YAxis
               yAxisId="mortality"
-              domain={[15, 35]}
+              domain={[20, 24]}
               tick={{ fontSize: 12 }}
               tickFormatter={(v) => v}
             />
