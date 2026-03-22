@@ -214,6 +214,22 @@ All endpoints accept: `?year=&month=&state=&zip=&name=`
 
 ---
 
+### Architectural Decisions
+
+**Why in-memory caching instead of fetching on every request?**
+The CMS dataset (`data.cms.gov`) is a public REST API with no authentication and rate limits. Fetching all 7,557 facilities requires ~8 paginated requests of 1,000 rows each. Doing this on every user request would make the app unusably slow (seconds of latency per click) and risk hitting CMS rate limits under any real traffic. The solution is a module-level cache in `cmsData.ts` — on the first request, all pages are fetched and stored in memory. Every subsequent request within 1 hour reads from that in-memory array instantly. After 1 hour the cache expires and refreshes, ensuring data stays reasonably current without polling. This is the simplest correct solution for a read-only dataset of this size.
+
+**Why Next.js API routes instead of a separate backend server?**
+A separate Express or FastAPI server would require its own deployment, its own port, CORS configuration, and additional infrastructure cost. Since the frontend is already a Next.js app, API routes (`/app/api/`) deploy as serverless functions on Vercel alongside the frontend automatically — same repo, same deploy, zero extra config. Each route (`/api/summary`, `/api/table`, `/api/analysis`) is a focused function that accepts filter query params, applies them to the cached data, and returns only the shape the consuming component needs. This keeps the backend logic co-located with the frontend without any added complexity.
+
+**Why are empty `mortality_rate_facility` strings treated as null?**
+The raw CMS API returns `mortality_rate_facility` as a string field. For facilities where the SMR has not been calculated (too few patients, new facility, data suppressed for privacy), the field is an empty string `""` rather than a missing key or a JSON `null`. If these were parsed as `0` or included as-is, they would corrupt every aggregation — the average mortality, min/max, standard deviation, and outlier threshold would all be dragged down toward zero by facilities that simply have no reported data. Treating `""` as null and excluding those records from aggregations ensures all computed statistics reflect only facilities with actual measured mortality rates.
+
+**Why do the Year and Month filters use `certification_date` instead of `smr_date`?**
+`smr_date` (e.g. `"01Jan2021-31Dec2024"`) represents the measurement window — the 3-year rolling period over which the SMR was calculated. Every facility in the current dataset shares the same or very similar `smr_date` range, so filtering by it would either return everything or nothing and would not be meaningful to users. `certification_date` (e.g. `"2015-03-15"`) is the date each facility was certified by CMS and varies across all facilities from 1968 to 2025. This is the only date field that meaningfully differs between records and allows users to explore how mortality patterns vary by facility age/era — which is also what drives the "Mortality Rate Trend by Facility Era" chart on the Analysis page.
+
+---
+
 ### Evaluation Criteria Coverage
 
 #### Backend
