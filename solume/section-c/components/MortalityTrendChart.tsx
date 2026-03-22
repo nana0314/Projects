@@ -24,18 +24,30 @@ export default function MortalityTrendChart({ data, nationalAvg }: Props) {
         <div className="h-48 flex items-center justify-center text-gray-300 text-sm">No data</div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+          <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="era" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 12 }} domain={[15, 35]} />
+            <YAxis
+              yAxisId="mortality"
+              domain={[15, 35]}
+              tick={{ fontSize: 12 }}
+              tickFormatter={(v) => v}
+            />
+            <YAxis
+              yAxisId="count"
+              orientation="right"
+              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              tickFormatter={(v) => `${v}`}
+            />
             <Tooltip
-              formatter={(val, name) => name === "count"
-                ? [`${val} facilities`, "Facilities"]
-                : [`${val}`, "Avg Mortality"]}
+              formatter={(val, name) => name === "Facility Count"
+                ? [`${val}`, "Facility Count"]
+                : [`${val}`, "Avg Mortality Rate"]}
               labelFormatter={(l) => `Era: ${l}`}
             />
             <Legend />
             <Line
+              yAxisId="mortality"
               type="monotone"
               dataKey="avgMortality"
               stroke="#3b82f6"
@@ -44,13 +56,13 @@ export default function MortalityTrendChart({ data, nationalAvg }: Props) {
               name="Avg Mortality Rate"
             />
             <Line
+              yAxisId="count"
               type="monotone"
               dataKey="count"
               stroke="#d1d5db"
               strokeWidth={1.5}
               dot={false}
               name="Facility Count"
-              yAxisId={0}
               strokeDasharray="3 3"
             />
           </LineChart>

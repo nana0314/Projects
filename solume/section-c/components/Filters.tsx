@@ -47,7 +47,7 @@ export default function Filters({ values, onChange }: Props) {
     <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Filters</h2>
-        <button type="button" onClick={clear} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+        <button type="button" onClick={clear} className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer">
           Clear all
         </button>
       </div>
