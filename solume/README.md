@@ -95,12 +95,7 @@ Given a tree with `n` nodes and integer `k`, compute the **kawaiiness** — the 
 
 ### How to Run
 
-```bash
-cd section-b
-python solution.py < input.txt
-```
-
-Or with inline input:
+inline input:
 
 ```bash
 echo "1
