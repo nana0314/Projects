@@ -56,12 +56,20 @@ export async function getFeedPosts(
   return { posts, cursor: newCursor };
 }
 
-export async function getPostsByAuthor(authorId: string): Promise<Post[]> {
+export async function getPostsByAuthor(authorId: string, publicOnly = true): Promise<Post[]> {
   const e2e = getE2E();
-  if (e2e?.posts) return e2e.posts.filter(p => p.authorId === authorId);
-  const snap = await getDocs(
-    query(collection(db, POSTS), where('authorId', '==', authorId), orderBy('createdAt', 'desc'))
-  );
+  if (e2e?.posts) {
+    const posts = e2e.posts.filter(p => p.authorId === authorId);
+    return publicOnly ? posts.filter(p => p.visibility === 'public') : posts;
+  }
+  // Always filter by visibility == 'public' when reading another user's posts so
+  // Firestore security rules (which require visibility == 'public' for non-owners)
+  // can be satisfied at query time. Pass publicOnly=false only when the caller is
+  // the post owner and has already verified ownership separately.
+  const constraints = publicOnly
+    ? [where('authorId', '==', authorId), where('visibility', '==', 'public'), orderBy('createdAt', 'desc')]
+    : [where('authorId', '==', authorId), orderBy('createdAt', 'desc')];
+  const snap = await getDocs(query(collection(db, POSTS), ...constraints));
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Post));
 }
 
