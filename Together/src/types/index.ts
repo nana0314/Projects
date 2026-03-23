@@ -64,6 +64,7 @@ export interface Chat {
   lastMessage: string;
   lastMessageAt: Timestamp;
   createdAt: Timestamp;
+  unreadCounts?: Record<string, number>;
 }
 
 export interface Message {

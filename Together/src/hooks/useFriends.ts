@@ -12,7 +12,9 @@ import {
   removeFriend,
   areFriends,
   getOutgoingRequest,
+  subscribeToIncomingRequests,
 } from '@/src/services/FriendService';
+import { Unsubscribe } from 'firebase/firestore';
 import { getE2E } from '@/src/lib/testMode';
 
 export function useFriends(userId: string | null) {
@@ -63,4 +65,14 @@ export function useFriends(userId: string | null) {
   }, [userId]);
 
   return { friends, incoming, loading, sendRequest, accept, decline, cancel, remove, areFriends, getOutgoingRequest, refresh };
+}
+
+export function useNotificationCount(userId: string | null): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!userId) { setCount(0); return; }
+    const unsub: Unsubscribe = subscribeToIncomingRequests(userId, (reqs) => setCount(reqs.length));
+    return () => unsub();
+  }, [userId]);
+  return count;
 }

@@ -34,7 +34,7 @@ export default function ChatDetailPage({ params }: { params: Promise<{ chatId: s
   const { chatId } = use(params);
   const { user } = useAuth();
   const router = useRouter();
-  const { messages, chat, loading, send } = useMessages(chatId);
+  const { messages, chat, loading, send } = useMessages(chatId, user?.uid);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);

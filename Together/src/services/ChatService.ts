@@ -2,7 +2,7 @@ import {
   collection, doc, addDoc, getDocs, getDoc,
   query, where, orderBy, limit, onSnapshot,
   serverTimestamp, updateDoc, arrayUnion, arrayRemove,
-  Unsubscribe,
+  increment, Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '@/src/config/firebase';
 import { Chat, Message, UserProfile } from '@/src/types';
@@ -81,7 +81,8 @@ export async function createGroup(
 export async function sendMessage(
   chatId: string,
   sender: { uid: string; displayName: string; photoURL: string },
-  body: string
+  body: string,
+  participantIds: string[] = []
 ): Promise<void> {
   if (getE2E()) return; // E2E mode: skip real write
   await addDoc(collection(db, CHATS, chatId, 'messages'), {
@@ -91,9 +92,25 @@ export async function sendMessage(
     body,
     createdAt: serverTimestamp(),
   });
+  const unreadUpdates: Record<string, unknown> = {};
+  participantIds
+    .filter(id => id !== sender.uid)
+    .forEach(id => { unreadUpdates[`unreadCounts.${id}`] = increment(1); });
   await updateDoc(doc(db, CHATS, chatId), {
     lastMessage: body.slice(0, 60),
     lastMessageAt: serverTimestamp(),
+    ...unreadUpdates,
+  });
+}
+
+export async function markChatAsRead(chatId: string, userId: string): Promise<void> {
+  if (getE2E()) return;
+  await updateDoc(doc(db, CHATS, chatId), { [`unreadCounts.${userId}`]: 0 });
+}
+
+export function subscribeToChatDoc(chatId: string, callback: (chat: Chat | null) => void): Unsubscribe {
+  return onSnapshot(doc(db, CHATS, chatId), snap => {
+    callback(snap.exists() ? ({ id: snap.id, ...snap.data() } as Chat) : null);
   });
 }
 

@@ -1,12 +1,15 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/src/context/AuthContext';
 import { useChats } from '@/src/hooks/useChats';
+import { getFriendProfiles, getUserProfile } from '@/src/services/FriendService';
+import { createDM } from '@/src/services/ChatService';
 import SignInPrompt from '@/src/components/SignInPrompt';
 import Avatar from '@/src/components/Avatar';
-import { Chat } from '@/src/types';
+import { Chat, UserProfile } from '@/src/types';
 
 function timeAgo(ts: { seconds: number } | null | undefined): string {
   if (!ts) return '';
@@ -28,6 +31,8 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
     if (otherId && chat.participantPhotos) photo = chat.participantPhotos[otherId] ?? null;
   }
 
+  const unread = chat.unreadCounts?.[currentUserId] ?? 0;
+
   return (
     <Link href={`/chat/${chat.id}/`} data-testid="chat-item">
       <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3 hover:shadow-md active:scale-[0.99] transition-all">
@@ -43,10 +48,19 @@ function ChatItem({ chat, currentUserId }: { chat: Chat; currentUserId: string }
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
+            <p className={`text-sm truncate ${unread > 0 ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'}`}>{name}</p>
             <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">{timeAgo(chat.lastMessageAt)}</span>
           </div>
-          <p className="text-xs text-gray-400 truncate mt-0.5">{chat.lastMessage || 'No messages yet'}</p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className={`text-xs truncate flex-1 ${unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+              {chat.lastMessage || 'No messages yet'}
+            </p>
+            {unread > 0 && (
+              <span className="ml-2 min-w-[18px] h-[18px] px-1 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Link>
@@ -57,6 +71,26 @@ export default function ChatListPage() {
   const { user } = useAuth();
   const { chats, loading } = useChats(user?.uid ?? null);
   const router = useRouter();
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [friends, setFriends] = useState<UserProfile[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [startingDM, setStartingDM] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showNewChat || !user) return;
+    setLoadingFriends(true);
+    getFriendProfiles(user.uid).then(f => { setFriends(f); setLoadingFriends(false); });
+  }, [showNewChat, user]);
+
+  const handleStartDM = async (friend: UserProfile) => {
+    if (!user || startingDM) return;
+    setStartingDM(friend.uid);
+    const myProfile = await getUserProfile(user.uid);
+    const profiles: Record<string, UserProfile> = { [friend.uid]: friend };
+    if (myProfile) profiles[user.uid] = myProfile;
+    const chatId = await createDM(user.uid, friend.uid, profiles);
+    router.push(`/chat/${chatId}/`);
+  };
 
   if (!user) return <SignInPrompt message="Sign in to access chats" />;
 
@@ -64,15 +98,28 @@ export default function ChatListPage() {
     <div className="min-h-screen bg-[#f5f3ff]" data-testid="chat-list-page">
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center justify-between max-w-lg mx-auto">
         <h1 className="text-lg font-bold text-gray-900">Chats</h1>
-        <Link
-          href="/chat/new-group/"
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          aria-label="New group"
-        >
-          <svg className="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-        </Link>
+        <div className="flex items-center gap-1">
+          {/* New DM button */}
+          <button
+            onClick={() => setShowNewChat(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="New direct message"
+          >
+            <svg className="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
+          {/* New group button */}
+          <Link
+            href="/chat/new-group/"
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="New group"
+          >
+            <svg className="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+            </svg>
+          </Link>
+        </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 pt-4 pb-6 space-y-2">
@@ -89,13 +136,80 @@ export default function ChatListPage() {
             </div>
             <div>
               <p className="text-sm text-gray-600 font-medium">No chats yet</p>
-              <p className="text-xs text-gray-400 mt-1">Add a friend to start chatting</p>
+              <p className="text-xs text-gray-400 mt-1">Tap + to message a friend</p>
             </div>
           </div>
         ) : (
           chats.map(chat => <ChatItem key={chat.id} chat={chat} currentUserId={user.uid} />)
         )}
       </main>
+
+      {/* New DM bottom sheet */}
+      {showNewChat && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setShowNewChat(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-t-3xl max-w-lg mx-auto w-full max-h-[70vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-gray-100">
+              <h2 className="text-base font-bold text-gray-900">New Message</h2>
+              <button onClick={() => setShowNewChat(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-4 py-3 space-y-1">
+              {loadingFriends ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-14 rounded-xl skeleton-shimmer animate-pulse" />
+                ))
+              ) : friends.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-sm text-gray-500">No friends yet.</p>
+                  <p className="text-xs text-gray-400 mt-1">Add friends first to message them.</p>
+                </div>
+              ) : (
+                friends.map(f => (
+                  <button
+                    key={f.uid}
+                    onClick={() => handleStartDM(f)}
+                    disabled={startingDM === f.uid}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-gray-50 active:bg-gray-100 transition-colors disabled:opacity-50"
+                  >
+                    <Avatar src={f.photoURL} name={f.displayName} size={42} />
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-semibold text-gray-900">{f.displayName}</p>
+                    </div>
+                    {startingDM === f.uid ? (
+                      <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+              <Link
+                href="/chat/new-group/"
+                onClick={() => setShowNewChat(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-brand-50 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold text-brand-600">New Group Chat</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

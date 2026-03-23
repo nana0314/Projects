@@ -1,6 +1,7 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, getDocs,
   query, where, or, serverTimestamp, setDoc, getDoc, orderBy, limit,
+  onSnapshot, Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '@/src/config/firebase';
 import { FriendRequest, Friendship, UserProfile } from '@/src/types';
@@ -142,6 +143,16 @@ export async function getFriendProfiles(userId: string): Promise<UserProfile[]> 
   if (!friendIds.length) return [];
   const profiles = await Promise.all(friendIds.map(id => getUserProfile(id)));
   return profiles.filter(Boolean) as UserProfile[];
+}
+
+export function subscribeToIncomingRequests(
+  userId: string,
+  callback: (requests: FriendRequest[]) => void
+): Unsubscribe {
+  return onSnapshot(
+    query(collection(db, FR), where('toId', '==', userId), where('status', '==', 'pending')),
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FriendRequest)))
+  );
 }
 
 export async function searchUsers(term: string, max = 10): Promise<UserProfile[]> {
