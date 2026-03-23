@@ -69,10 +69,11 @@ service cloud.firestore {
 
     // ── Friendships ───────────────────────────────────────────────────────────
     // Readable and deletable only by one of the two friends.
-    // Created only when accepting a friend request (both userIds must include the requester).
+    // resource == null guard handles getDoc on non-existent friendship documents
+    // (when checking areFriends(), the doc may not exist yet).
     match /friendships/{friendshipId} {
       allow read: if isSignedIn()
-                  && request.auth.uid in resource.data.userIds;
+                  && (resource == null || request.auth.uid in resource.data.userIds);
       allow create: if isSignedIn()
                     && request.auth.uid in request.resource.data.userIds;
       allow delete: if isSignedIn()

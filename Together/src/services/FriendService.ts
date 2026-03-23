@@ -1,6 +1,6 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, getDocs,
-  query, where, or, serverTimestamp, setDoc, getDoc,
+  query, where, or, serverTimestamp, setDoc, getDoc, orderBy, limit,
 } from 'firebase/firestore';
 import { db } from '@/src/config/firebase';
 import { FriendRequest, Friendship, UserProfile } from '@/src/types';
@@ -142,4 +142,25 @@ export async function getFriendProfiles(userId: string): Promise<UserProfile[]> 
   if (!friendIds.length) return [];
   const profiles = await Promise.all(friendIds.map(id => getUserProfile(id)));
   return profiles.filter(Boolean) as UserProfile[];
+}
+
+export async function searchUsers(term: string, max = 10): Promise<UserProfile[]> {
+  const e2e = getE2E();
+  if (e2e?.users) {
+    const lower = term.toLowerCase();
+    return Object.values(e2e.users).filter(u =>
+      u.displayName.toLowerCase().includes(lower)
+    ).slice(0, max);
+  }
+  const end = term + '\uf8ff';
+  const snap = await getDocs(
+    query(
+      collection(db, 'users'),
+      orderBy('displayName'),
+      where('displayName', '>=', term),
+      where('displayName', '<=', end),
+      limit(max)
+    )
+  );
+  return snap.docs.map(d => ({ uid: d.id, ...d.data() } as UserProfile));
 }

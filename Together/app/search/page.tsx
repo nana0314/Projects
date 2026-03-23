@@ -2,10 +2,12 @@
 
 import { useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Post } from '@/src/types';
-import { searchByHashtag, searchByKeywords } from '@/src/services/PostService';
+import { Post, UserProfile } from '@/src/types';
+import { searchByHashtag, searchByKeywords, getPostsByAuthor } from '@/src/services/PostService';
+import { searchUsers } from '@/src/services/FriendService';
 import { tokenize } from '@/src/lib/tokenizer';
 import PostCard from '@/src/components/PostCard';
+import Avatar from '@/src/components/Avatar';
 
 function SearchInner() {
   const router = useRouter();
@@ -14,6 +16,7 @@ function SearchInner() {
 
   const [query, setQuery] = useState(initial);
   const [results, setResults] = useState<Post[]>([]);
+  const [userResults, setUserResults] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [mode, setMode] = useState<'hashtag' | 'keyword'>('keyword');
@@ -23,6 +26,7 @@ function SearchInner() {
     if (!trimmed) return;
     setLoading(true);
     setSearched(true);
+    setUserResults([]);
 
     let posts: Post[] = [];
     if (trimmed.startsWith('#')) {
@@ -31,7 +35,17 @@ function SearchInner() {
     } else {
       setMode('keyword');
       const tokens = tokenize(trimmed);
-      posts = await searchByKeywords(tokens);
+      const [keywordPosts, users] = await Promise.all([
+        searchByKeywords(tokens),
+        searchUsers(trimmed),
+      ]);
+      // also fetch posts from matching authors and merge (dedup by id)
+      const authorPostArrays = await Promise.all(users.map(u => getPostsByAuthor(u.uid)));
+      const authorPosts = authorPostArrays.flat();
+      const seen = new Set(keywordPosts.map(p => p.id));
+      const merged = [...keywordPosts, ...authorPosts.filter(p => !seen.has(p.id))];
+      posts = merged;
+      setUserResults(users);
     }
     setResults(posts);
     setLoading(false);
@@ -81,7 +95,7 @@ function SearchInner() {
           <p className="text-[11px] text-gray-400">
             {query.startsWith('#')
               ? 'Searching by exact hashtag'
-              : 'Searching by keywords (English + 中文)'}
+              : 'Searching by keywords + people (English + 中文)'}
           </p>
         </div>
       </header>
@@ -95,6 +109,7 @@ function SearchInner() {
                 { icon: '#', label: 'Search by hashtag', example: '#rideshare' },
                 { icon: '🔤', label: 'Search by English keywords', example: 'cambridge station uber' },
                 { icon: '🀄', label: 'Search by Chinese keywords', example: '剑桥 优步' },
+                { icon: '👤', label: 'Search by person name', example: 'John' },
               ].map(tip => (
                 <div key={tip.label} className="flex items-center gap-3">
                   <span className="text-lg w-6 text-center">{tip.icon}</span>
@@ -119,7 +134,7 @@ function SearchInner() {
           ))
         )}
 
-        {searched && !loading && results.length === 0 && (
+        {searched && !loading && results.length === 0 && userResults.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
               <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -130,10 +145,34 @@ function SearchInner() {
           </div>
         )}
 
+        {!loading && userResults.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">People</p>
+            <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 overflow-hidden">
+              {userResults.map(u => (
+                <button
+                  key={u.uid}
+                  onClick={() => router.push(`/user/${u.uid}/`)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+                >
+                  <Avatar src={u.photoURL} name={u.displayName} size={40} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{u.displayName}</p>
+                    <p className="text-xs text-gray-400">View profile</p>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         {!loading && results.length > 0 && (
           <>
-            <p className="text-xs text-gray-400 px-1">
-              {results.length} result{results.length !== 1 ? 's' : ''} — {mode === 'hashtag' ? 'exact hashtag' : 'keyword'} match
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
+              Posts — {results.length} result{results.length !== 1 ? 's' : ''} ({mode === 'hashtag' ? 'exact hashtag' : 'keyword'} match)
             </p>
             {results.map(p => <PostCard key={p.id} post={p} />)}
           </>
