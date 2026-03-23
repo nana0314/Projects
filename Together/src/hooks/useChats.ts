@@ -65,13 +65,20 @@ export function useMessages(chatId: string | null, currentUserId?: string) {
     };
   }, [chatId, currentUserId]);
 
+  // Auto-read: whenever new messages arrive while the user is in the chat, reset unread count
+  useEffect(() => {
+    if (!chatId || !currentUserId || messages.length === 0) return;
+    markChatAsRead(chatId, currentUserId).catch(() => {});
+  }, [messages, chatId, currentUserId]);
+
   const send = useCallback(async (
     sender: { uid: string; displayName: string; photoURL: string },
-    body: string
+    body: string,
+    imageURL?: string
   ) => {
     if (!chatId) return;
     const recipients = chat?.participantIds.filter(id => id !== sender.uid) ?? [];
-    await sendMessage(chatId, sender, body, recipients);
+    await sendMessage(chatId, sender, body, recipients, imageURL);
   }, [chatId, chat]);
 
   return { messages, chat, loading, send };

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import { createPost } from '@/src/services/PostService';
+import { uploadImage } from '@/src/services/StorageService';
 import SignInPrompt from '@/src/components/SignInPrompt';
 
 const HEADERS = ['Ride Share', 'Bundle Split', 'Lost & Found', 'Study Group', 'General', 'Other'];
@@ -38,8 +39,19 @@ export default function CreatePostPage() {
   const [hashtags, setHashtags] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
   if (!user) return <SignInPrompt message="Sign in to create a post" />;
 
@@ -55,6 +67,16 @@ export default function CreatePostPage() {
         .map(t => t.toLowerCase().trim())
         .filter(Boolean);
 
+      let imageURL: string | undefined;
+      if (imageFile) {
+        imageURL = await uploadImage(
+          `posts/${user.uid}/${Date.now()}_${imageFile.name}`,
+          imageFile,
+          setUploadProgress
+        );
+        setUploadProgress(null);
+      }
+
       await createPost({
         authorId: user.uid,
         authorName: user.displayName ?? 'Anonymous',
@@ -64,6 +86,7 @@ export default function CreatePostPage() {
         body: body.trim(),
         hashtags: rawTags,
         visibility,
+        imageURL,
       });
       router.push('/');
     } catch (e) {
@@ -174,6 +197,48 @@ export default function CreatePostPage() {
             data-testid="post-body"
             className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
           />
+        </div>
+
+        {/* Image upload */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Photo (optional)</label>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImagePick}
+            className="hidden"
+          />
+          {imagePreview ? (
+            <div className="relative rounded-xl overflow-hidden">
+              <img src={imagePreview} alt="preview" className="w-full max-h-64 object-cover" />
+              <button
+                type="button"
+                onClick={() => { setImageFile(null); setImagePreview(null); }}
+                className="absolute top-2 right-2 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center text-white"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              {uploadProgress !== null && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
+                  <div className="h-full bg-brand-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:border-brand-300 hover:text-brand-400 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+              <span className="text-xs font-medium">Add a photo</span>
+            </button>
+          )}
         </div>
 
         {/* Hashtags */}

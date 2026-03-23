@@ -14,12 +14,14 @@ export async function createPost(
   data: Omit<Post, 'id' | 'createdAt' | 'searchTokens' | 'commentCount'>
 ): Promise<string> {
   const searchTokens = buildSearchTokens([data.header, data.title, data.body.slice(0, 150), ...data.hashtags]);
-  const ref = await addDoc(collection(db, POSTS), {
+  const payload: Record<string, unknown> = {
     ...data,
     searchTokens,
     commentCount: 0,
     createdAt: serverTimestamp(),
-  });
+  };
+  if (!payload.imageURL) delete payload.imageURL;
+  const ref = await addDoc(collection(db, POSTS), payload);
   return ref.id;
 }
 

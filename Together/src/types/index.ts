@@ -13,6 +13,7 @@ export interface Post {
   visibility: 'public' | 'private';
   createdAt: Timestamp;
   commentCount: number;
+  imageURL?: string;
 }
 
 export interface Comment {
@@ -74,6 +75,7 @@ export interface Message {
   senderPhoto: string;
   body: string;
   createdAt: Timestamp;
+  imageURL?: string;
 }
 
 export interface CommentedPost {

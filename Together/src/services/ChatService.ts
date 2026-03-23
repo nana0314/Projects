@@ -82,16 +82,19 @@ export async function sendMessage(
   chatId: string,
   sender: { uid: string; displayName: string; photoURL: string },
   body: string,
-  participantIds: string[] = []
+  participantIds: string[] = [],
+  imageURL?: string
 ): Promise<void> {
   if (getE2E()) return; // E2E mode: skip real write
-  await addDoc(collection(db, CHATS, chatId, 'messages'), {
+  const msgData: Record<string, unknown> = {
     senderId: sender.uid,
     senderName: sender.displayName,
     senderPhoto: sender.photoURL,
     body,
     createdAt: serverTimestamp(),
-  });
+  };
+  if (imageURL) msgData.imageURL = imageURL;
+  await addDoc(collection(db, CHATS, chatId, 'messages'), msgData);
   const unreadUpdates: Record<string, unknown> = {};
   participantIds
     .filter(id => id !== sender.uid)

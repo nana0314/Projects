@@ -34,6 +34,13 @@ export default function PostCard({ post }: { post: Post }) {
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{preview}</p>
         )}
 
+        {/* Post image */}
+        {post.imageURL && (
+          <div className="rounded-xl overflow-hidden mt-1">
+            <img src={post.imageURL} alt="post image" className="w-full max-h-64 object-cover" />
+          </div>
+        )}
+
         {/* Hashtags */}
         {post.hashtags.length > 0 && (
           <div className="flex flex-wrap gap-1">
