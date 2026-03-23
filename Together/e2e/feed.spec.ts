@@ -8,8 +8,8 @@ test.describe('Feed Page — Authenticated', () => {
     await page.waitForLoadState('domcontentloaded');
   });
 
-  test('shows Together header with logo', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Together' })).toBeVisible();
+  test('shows pin header with logo', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'pin' })).toBeVisible();
   });
 
   test('shows bottom nav with 5 tabs', async ({ page }) => {
@@ -66,8 +66,8 @@ test.describe('Feed Page — Unauthenticated', () => {
     await page.waitForLoadState('domcontentloaded');
   });
 
-  test('shows Together header', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Together' })).toBeVisible();
+  test('shows pin header', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'pin' })).toBeVisible();
   });
 
   test('no notification bell when not signed in', async ({ page }) => {

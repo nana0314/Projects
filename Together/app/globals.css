@@ -51,5 +51,5 @@ nav[class*="fixed bottom-0"] > div:first-child {
 }
 
 /* Prose styles for markdown-rendered post bodies */
-.together-prose strong { font-weight: 700; color: inherit; }
-.together-prose em     { font-style: italic; }
+.pin-prose strong { font-weight: 700; color: inherit; }
+.pin-prose em     { font-style: italic; }

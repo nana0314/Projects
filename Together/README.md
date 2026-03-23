@@ -6,7 +6,7 @@ A Progressive Web App for local coordination: post ride-share requests, bundle s
 
 ## Purpose
 
-Together solves the problem of coordinating with strangers locally. Examples:
+pin solves the problem of coordinating with strangers locally. Examples:
 
 1. **Ride share** — Uber is expensive alone. Post "Anyone heading to Cambridge station at 5pm?", discuss in comments, then DM to arrange pickup and split the fare.
 2. **Bundle split** — Costco membership or bulk buy too much for one person. Post, find someone to split with, meet up to hand off.
@@ -211,7 +211,7 @@ Bell icon in header → `/notifications` (badge when pending friend requests)
 
 ## Live Site
 
-**[https://together-0314.vercel.app](https://together-0314.vercel.app)**
+**[https://pin-0314.vercel.app](https://pin-0314.vercel.app)**
 
 Deployed on [Vercel](https://vercel.com) with Firebase (Auth + Firestore) as the backend.
 
@@ -261,7 +261,7 @@ npm run test:e2e:headed   # with browser visible
 npm run test:e2e:ui       # Playwright UI mode
 
 # Against production URL:
-$env:PLAYWRIGHT_BASE_URL="https://together-0314.vercel.app"
+$env:PLAYWRIGHT_BASE_URL="https://pin-0314.vercel.app"
 npm run test:e2e:prod
 ```
 

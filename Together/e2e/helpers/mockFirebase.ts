@@ -12,13 +12,13 @@ const API_KEY = 'AIzaSyABPfGInmgOCx5JBcw7E2s9GKID8FZl8Dk';
 // ── Test users ─────────────────────────────────────────────────────────────────
 export const MOCK_USER = {
   uid:         'mock-uid-tester-001',
-  email:       'tester@together.test',
+  email:       'tester@pin.test',
   displayName: 'Test User',
   photoURL:    '',
 };
 export const MOCK_OTHER_USER = {
   uid:         'mock-uid-other-002',
-  email:       'other@together.test',
+  email:       'other@pin.test',
   displayName: 'Other Person',
   photoURL:    '',
 };

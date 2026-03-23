@@ -194,7 +194,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
           <h1 className="text-base font-bold text-gray-900 leading-snug">{post.title}</h1>
 
           {post.body && (
-            <div className="together-prose text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
+            <div className="pin-prose text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
               <ReactMarkdown>{post.body}</ReactMarkdown>
             </div>
           )}

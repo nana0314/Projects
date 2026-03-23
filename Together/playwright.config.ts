@@ -27,7 +27,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // Local only: Next.js loads Firebase keys from Together/.env.local
+  // Local only: Next.js loads Firebase keys from pin/.env.local
   webServer: isRemoteBase
     ? undefined
     : {
