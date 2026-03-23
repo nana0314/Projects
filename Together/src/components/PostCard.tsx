@@ -19,12 +19,22 @@ export default function PostCard({ post }: { post: Post }) {
   return (
     <Link href={`/post/${post.id}/`} data-testid="post-card" className="block">
       <div className="bg-white rounded-2xl shadow-sm p-4 space-y-2 hover:shadow-md active:scale-[0.99] transition-all">
-        {/* Header badge */}
-        {post.header && (
-          <span className="inline-block bg-brand-50 text-brand-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-            {post.header}
-          </span>
-        )}
+        {/* Header badge + visibility */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {post.header && (
+            <span className="inline-block bg-brand-50 text-brand-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+              {post.header}
+            </span>
+          )}
+          {post.visibility === 'private' && (
+            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+              Only me
+            </span>
+          )}
+        </div>
 
         {/* Title */}
         <h2 className="text-sm font-bold text-gray-900 leading-snug">{post.title}</h2>

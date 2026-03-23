@@ -23,7 +23,7 @@ export default function ProfilePage() {
     if (!user) return;
     async function load() {
       setLoading(true);
-      const posts = await getPostsByAuthor(user!.uid);
+      const posts = await getPostsByAuthor(user!.uid, false);
       setMyPosts(posts);
 
       // Load commented posts
