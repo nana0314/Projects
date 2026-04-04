@@ -71,6 +71,19 @@ A comprehensive 4-page Power BI dashboard analyzing **1.3 million credit card tr
 - **DAX Calculations:** 20+ measures covering KPIs, fraud detection, time intelligence, and customer analytics.
 - **Data Visualization:** Executive KPIs, fraud intelligence, spending behavior analysis, and customer segmentation.
 
+### 7. [Vibe Pet](./vibe-pet) 🐾
+
+**Tech Stack:** Electron, React 18, TypeScript, electron-vite, electron-store, chokidar, simple-git
+
+A desktop companion app — a cute cartoon pet that lives on your taskbar and grows based on your real daily productivity.
+
+- **Cartoon Animals:** 8 choosable animated companions (cat, dog, dragon, bunny, panda, koala, penguin, seal) with CSS keyframe animations for idle, happy, eating, playing, and sad moods.
+- **Auto Git Tracking:** Watches all git repositories under your projects folder (including newly created ones) and counts lines of code added per day.
+- **Productive App Tracking:** Polls the active foreground window every 60 seconds — credits time in VS Code, terminals, browsers, Office apps, Notion, etc. while excluding gaming apps (Steam, League, Valorant, etc.).
+- **XP & Growth System:** Daily XP from code lines, productive minutes, job applications, and manual work logs converts to growth % — pet visually grows through 6 stages (Egg → Baby → Child → Teen → Adult → Legend).
+- **Real-Time Updates:** Growth recalculates immediately on every activity log and syncs every 30 seconds — no more waiting until midnight.
+- **System Tray:** Minimises to tray so it's always tracking in the background; yellow button = hide to tray, red × = quit entirely.
+
 ---
 
 ## 📚 University & Academic Projects
