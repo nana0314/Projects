@@ -10,11 +10,15 @@ Welcome to my project repository! This collection showcases my journey across fu
 
 **Tech Stack:** Next.js 15, TypeScript, Firebase, Tailwind CSS, PWA
 
-A modern, AI-powered Progressive Web App for finance expenses tracking and splitting with friends.
+A modern, AI-powered Progressive Web App for expense tracking and splitting with friends — built as a full LLM fintech app.
 
-- **AI Integration:** Uses Vertex AI (Gemini) for receipt scanning and NLP for chat-based expense entry.
-- **Complex Logic:** Algorithms for debt simplification and partial payments.
-- **Data Viz:** Interactive dashboards for spending trends and debt networks.
+- **AI Expense Entry:** Vertex AI (Gemini 2.5 Flash Lite) powers receipt OCR and NLP chat-based expense parsing — type "split dinner $80 with Alex" or upload a photo.
+- **Conversational Spending Q&A:** Ask mode in the AI chat lets you query your own data in natural language — "What did I spend on food last month?" — answered by Gemini using your actual expense history.
+- **Weekly AI Insights:** Every Sunday a Cloud Function analyses the past 7 days of spending and generates a personalised summary + 2–3 actionable tips via Gemini. Users can also trigger on-demand insight generation at any time.
+- **On-Demand Analysis:** One-tap buttons on the Insights page — Analyse my spending, Suggest a budget, Am I over budget?, Top spending categories — each answered by Gemini with real data context.
+- **Debt Simplification:** Greedy O(n log n) algorithm minimises the number of transactions needed to settle group balances.
+- **Data Viz:** Interactive dashboards for spending trends, category breakdowns, budget vs actual, and active group analytics (Recharts).
+- **Security:** Firestore security rules enforced server-side; Vertex AI credentials kept in Cloud Functions only; per-user rate limiting (100 AI requests/day) via Firestore transactions.
 
 ### 2. [FanFan — Tinder Styled Recipe](./FanFan) 🍳
 
