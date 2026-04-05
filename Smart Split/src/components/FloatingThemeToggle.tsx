@@ -1,22 +1,45 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/src/context/ThemeContext';
+import { useAuth } from '@/src/context/AuthContext';
+
+/** Bottom offset for the chat bubble — keep in sync with AIChatBubble */
+const CHAT_BOTTOM_OFFSET_PX = 188;
+/** Theme sits below the chat (closer to the nav) on dashboard */
+const THEME_BELOW_CHAT_OFFSET_PX = 116;
 
 export default function FloatingThemeToggle() {
     const { theme, toggleTheme } = useTheme();
     const pathname = usePathname();
+    const { user } = useAuth();
 
-    // Only show on the dashboard page
-    const isAllowed = pathname === '/dashboard';
+    const allowedPaths = ['/dashboard', '/friends', '/groups'];
+    const isAllowed =
+        pathname &&
+        user &&
+        allowedPaths.some((path) => pathname === path || pathname.startsWith(path + '/'));
 
     if (!isAllowed) return null;
+
+    // On friends/groups the right column has "Add Expenses" ~112px — avoid overlap by placing theme on the left, same row as chat
+    const isDashboard = pathname === '/dashboard' || pathname?.startsWith('/dashboard/');
+    const positionStyle: CSSProperties = isDashboard
+        ? {
+              bottom: `calc(env(safe-area-inset-bottom, 0px) + ${THEME_BELOW_CHAT_OFFSET_PX}px)`,
+              right: '1rem',
+          }
+        : {
+              bottom: `calc(env(safe-area-inset-bottom, 0px) + ${CHAT_BOTTOM_OFFSET_PX}px)`,
+              left: '1rem',
+          };
 
     return (
         <button
             onClick={toggleTheme}
             className="fixed w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 active:scale-90 hover:scale-105 bg-gray-800 dark:bg-yellow-400 text-yellow-300 dark:text-gray-900"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 228px)', right: '1rem', zIndex: 9998 }}
+            style={{ ...positionStyle, zIndex: 10001 }}
             title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             aria-label="Toggle theme"
         >
