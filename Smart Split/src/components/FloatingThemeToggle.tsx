@@ -3,21 +3,21 @@
 import type { CSSProperties } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/src/context/ThemeContext';
-import { useAuth } from '@/src/context/AuthContext';
 
-/** Bottom offset for the chat bubble — keep in sync with AIChatBubble */
-const CHAT_BOTTOM_OFFSET_PX = 188;
-/** Theme sits below the chat (closer to the nav) on dashboard */
-const THEME_BELOW_CHAT_OFFSET_PX = 116;
+/** Theme sits below the chat bubble, above the bottom nav (see AIChatBubble bottom offset). */
+const THEME_BELOW_CHAT_OFFSET_PX = 120;
+
+function isDashboardPath(pathname: string | null): boolean {
+    if (!pathname) return false;
+    const base = pathname.split('?')[0].replace(/\/+$/, '') || '/';
+    return base === '/dashboard';
+}
 
 export default function FloatingThemeToggle() {
     const { theme, toggleTheme } = useTheme();
     const pathname = usePathname();
-    const { user } = useAuth();
 
-    const isAllowed = pathname === '/dashboard';
-
-    if (!isAllowed) return null;
+    if (!isDashboardPath(pathname)) return null;
 
     const positionStyle: CSSProperties = {
         bottom: `calc(env(safe-area-inset-bottom, 0px) + ${THEME_BELOW_CHAT_OFFSET_PX}px)`,
@@ -26,9 +26,10 @@ export default function FloatingThemeToggle() {
 
     return (
         <button
+            type="button"
             onClick={toggleTheme}
-            className="fixed w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 active:scale-90 hover:scale-105 bg-gray-800 dark:bg-yellow-400 text-yellow-300 dark:text-gray-900"
-            style={{ ...positionStyle, zIndex: 10001 }}
+            className="fixed w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 active:scale-90 hover:scale-105 bg-gray-800 dark:bg-yellow-400 text-yellow-300 dark:text-gray-900 ring-2 ring-white/25 dark:ring-yellow-100/30 pointer-events-auto"
+            style={{ ...positionStyle, zIndex: 12000 }}
             title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             aria-label="Toggle theme"
         >

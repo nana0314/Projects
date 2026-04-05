@@ -31,10 +31,10 @@ export default function AIChatBubble() {
                 onClick={() => setIsOpen(true)}
                 className="fixed flex items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
                 style={{
-                    // Keep ~16px gap above FloatingThemeToggle (dashboard: theme at +116px, this button 52px tall)
-                    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 188px)',
+                    // ~16px gap above FloatingThemeToggle on dashboard (theme at +120px; this button 52px tall)
+                    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 192px)',
                     right: '1rem',
-                    zIndex: 10002,
+                    zIndex: 12001,
                     width: '52px',
                     height: '52px',
                     background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
