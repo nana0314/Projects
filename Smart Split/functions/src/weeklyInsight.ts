@@ -31,6 +31,22 @@ interface ExpenseData {
     type?: string;
 }
 
+/**
+ * On-demand insight generation — callable by the client.
+ * Generates an insight for the authenticated user immediately.
+ */
+export const generateInsightNow = functions.https.onCall(async (_data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    }
+    const userId = context.auth.uid;
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    await generateInsightForUser(userId, weekAgo, twoWeeksAgo, now);
+    return { success: true };
+});
+
 export const generateWeeklyInsights = functions.pubsub
     .schedule('every sunday 09:00')
     .timeZone('UTC')

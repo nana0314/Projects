@@ -569,7 +569,7 @@ export default function AddExpensePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-36">
       {/* Scanning overlay */}
       {scanning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">

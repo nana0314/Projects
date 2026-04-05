@@ -6,7 +6,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { getUserFriends } from '@/src/utils/friends';
 import { getUserGroups } from '@/src/utils/groups';
 import { createExpense } from '@/src/utils/expenses';
-import { parseTextExpense, buildContext, buildExpensePatterns, formatExpenseSummary } from '@/src/utils/aiAssistant';
+import { parseTextExpense, buildContext, buildExpensePatterns, formatExpenseSummary, askExpenseQuestion } from '@/src/utils/aiAssistant';
 import { scanReceipt } from '@/src/utils/receiptScanner';
 import { User, Group, ExpenseCategory } from '@/src/types';
 import { ChatMessage, ParsedExpense } from '@/src/types/receipt';
@@ -22,6 +22,7 @@ interface AIChatModalProps {
 export default function AIChatModal({ onClose, messages, setMessages, actionFeedback, setActionFeedback }: AIChatModalProps) {
     const router = useRouter();
     const { user } = useAuth();
+    const [mode, setMode] = useState<'add' | 'ask'>('add');
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [friends, setFriends] = useState<User[]>([]);
@@ -73,29 +74,33 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
         setIsLoading(true);
 
         try {
-            const friendsList = friends.map((f) => ({ uid: f.uid, displayName: f.displayName }));
-            const groupsList = groups.map((g) => ({
-                id: g.id,
-                name: g.name,
-                members: g.members?.map((m) => ({ uid: m.userId, displayName: m.displayName })) || [],
-            }));
-            const history = messages.map((m) => ({ role: m.role, content: m.content }));
+            if (mode === 'ask') {
+                const answer = await askExpenseQuestion(userMessage);
+                addMessage('assistant', answer);
+            } else {
+                const friendsList = friends.map((f) => ({ uid: f.uid, displayName: f.displayName }));
+                const groupsList = groups.map((g) => ({
+                    id: g.id,
+                    name: g.name,
+                    members: g.members?.map((m) => ({ uid: m.userId, displayName: m.displayName })) || [],
+                }));
+                const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
-            const ctx = buildContext();
-            ctx.recentPatterns = expensePatternsRef.current;
+                const ctx = buildContext();
+                ctx.recentPatterns = expensePatternsRef.current;
 
-            const result = await parseTextExpense(
-                userMessage,
-                friendsList,
-                groupsList,
-                history,
-                ctx
-            );
+                const result = await parseTextExpense(
+                    userMessage,
+                    friendsList,
+                    groupsList,
+                    history,
+                    ctx
+                );
 
-            const botContent = result.message || formatExpenseSummary(result);
-            // Only attach parsedExpense for actionable cards when no follow-up is needed
-            const showCard = result.success && !result.needsFollowUp && result.total;
-            addMessage('assistant', botContent, showCard ? result : undefined);
+                const botContent = result.message || formatExpenseSummary(result);
+                const showCard = result.success && !result.needsFollowUp && result.total;
+                addMessage('assistant', botContent, showCard ? result : undefined);
+            }
         } catch (err: any) {
             const errorMsg = err?.message || 'Something went wrong. Please try again.';
             addMessage('assistant', `\u274C ${errorMsg}`);
@@ -204,11 +209,18 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
         }
     };
 
-    const suggestedPrompts = [
-        'Coffee 8.50, split with Sarah',
-        'Uber 25, I paid for Weekend Trip group',
-        'John owes me 15 for lunch',
-    ];
+    const suggestedPrompts = mode === 'add'
+        ? [
+            'Coffee 8.50, split with Sarah',
+            'Uber 25, I paid for Weekend Trip group',
+            'John owes me 15 for lunch',
+        ]
+        : [
+            'What did I spend on food last month?',
+            'Which category did I spend the most on?',
+            'Am I over budget this month?',
+            'Suggest a budget based on my spending',
+        ];
 
     return (
         <div
@@ -216,20 +228,37 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-                <div className="flex items-center gap-2">
-                    <span className="text-xl">{"\u{1F916}"}</span>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Expense Assistant</h2>
+            <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xl">{"\u{1F916}"}</span>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Assistant</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        aria-label="Close"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                    aria-label="Close"
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                {/* Mode toggle */}
+                <div className="flex px-4 pb-3 gap-2">
+                    <button
+                        onClick={() => { setMode('add'); setInputText(''); }}
+                        className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${mode === 'add' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                    >
+                        ➕ Add Expense
+                    </button>
+                    <button
+                        onClick={() => { setMode('ask'); setInputText(''); }}
+                        className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${mode === 'ask' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                    >
+                        💬 Ask About Spending
+                    </button>
+                </div>
             </div>
 
             {/* Messages area */}
@@ -239,10 +268,12 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
                         <div className="text-6xl">{"\u{1F916}"}</div>
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                                AI Expense Assistant
+                                {mode === 'add' ? 'Add Expense' : 'Ask About Spending'}
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-                                Tell me about your expense in natural language and I&apos;ll help you log it!
+                                {mode === 'add'
+                                    ? "Tell me about your expense in natural language and I'll help you log it!"
+                                    : "Ask me anything about your spending — totals, categories, budget, trends."}
                             </p>
                         </div>
                         <div className="w-full max-w-sm space-y-2">
@@ -366,11 +397,11 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
             {/* Input bar */}
             <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3">
                 <div className="flex items-center gap-2 max-w-xl mx-auto">
-                    {/* Scan Receipt button */}
+                    {/* Scan Receipt button — only in Add mode */}
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isLoading}
-                        className="p-2.5 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                        disabled={isLoading || mode === 'ask'}
+                        className={`p-2.5 rounded-full transition-colors disabled:opacity-50 ${mode === 'ask' ? 'hidden' : 'text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
                         title="Scan Receipt"
                         aria-label="Scan Receipt"
                     >
@@ -400,7 +431,7 @@ export default function AIChatModal({ onClose, messages, setMessages, actionFeed
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Describe your expense..."
+                        placeholder={mode === 'add' ? 'Describe your expense...' : 'Ask about your spending...'}
                         disabled={isLoading}
                         className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                     />

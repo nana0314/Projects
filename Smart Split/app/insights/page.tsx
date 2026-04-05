@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/src/context/AuthContext';
 import { getAllInsights, getInsightSettings, setInsightEnabled } from '@/src/utils/insights';
+import { generateInsightNow, askExpenseQuestion } from '@/src/utils/aiAssistant';
 import { WeeklyInsight } from '@/src/types/insights';
 import { format } from 'date-fns';
 
@@ -15,6 +16,10 @@ export default function InsightsPage() {
     const [enabled, setEnabled] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
     const [toggling, setToggling] = useState(false);
+    const [generating, setGenerating] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+    const [analysisLoading, setAnalysisLoading] = useState(false);
+    const [analysisError, setAnalysisError] = useState('');
 
     useEffect(() => {
         if (!loading && !user) {
@@ -41,6 +46,34 @@ export default function InsightsPage() {
         }
     };
 
+    const handleGenerateNow = async () => {
+        if (!user) return;
+        setGenerating(true);
+        try {
+            await generateInsightNow();
+            await loadData();
+        } catch (err) {
+            console.error('Generate insight error:', err);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const handleOnDemandAnalysis = async (question: string) => {
+        if (!user) return;
+        setAnalysisLoading(true);
+        setAnalysisResult(null);
+        setAnalysisError('');
+        try {
+            const answer = await askExpenseQuestion(question);
+            setAnalysisResult(answer);
+        } catch (err: any) {
+            setAnalysisError(err?.message || 'Failed to get analysis. Please try again.');
+        } finally {
+            setAnalysisLoading(false);
+        }
+    };
+
     const handleToggle = async () => {
         if (!user) return;
         setToggling(true);
@@ -63,7 +96,7 @@ export default function InsightsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="min-h-screen bg-gray-50 pb-36">
             {/* Header */}
             <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
                 <Link
@@ -81,22 +114,73 @@ export default function InsightsPage() {
 
             <div className="max-w-2xl mx-auto p-4 space-y-6">
                 {/* Settings */}
-                <div className="bg-white rounded-xl shadow p-4 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-800">Weekly AI Insights</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            {enabled ? 'Your spending is analyzed weekly by AI' : 'Enable to get personalized spending analysis'}
-                        </p>
+                <div className="bg-white rounded-xl shadow p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-800">Weekly AI Insights</h3>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                                {enabled ? 'Your spending is analyzed weekly by AI' : 'Enable to get personalized spending analysis'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleToggle}
+                            disabled={toggling}
+                            className={`relative w-12 h-6 rounded-full transition-colors ${enabled ? 'bg-purple-600' : 'bg-gray-300'}`}
+                        >
+                            <span
+                                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-6' : ''}`}
+                            />
+                        </button>
                     </div>
-                    <button
-                        onClick={handleToggle}
-                        disabled={toggling}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${enabled ? 'bg-purple-600' : 'bg-gray-300'}`}
-                    >
-                        <span
-                            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-6' : ''}`}
-                        />
-                    </button>
+                    {enabled && (
+                        <button
+                            onClick={handleGenerateNow}
+                            disabled={generating}
+                            className="mt-3 w-full px-4 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:scale-95 transition-all disabled:opacity-50"
+                        >
+                            {generating ? '⏳ Generating...' : '⚡ Generate Insight Now'}
+                        </button>
+                    )}
+                </div>
+
+                {/* Phase 3: On-demand analysis */}
+                <div className="bg-white rounded-xl shadow p-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-800">🔍 On-Demand Analysis</h3>
+                    <p className="text-xs text-gray-500">Ask AI to analyze your spending right now.</p>
+                    <div className="grid grid-cols-1 gap-2">
+                        {[
+                            { label: '📊 Analyze my spending', question: 'Analyze my overall spending patterns and give me a summary with key insights.' },
+                            { label: '💡 Suggest a budget', question: 'Based on my spending history, suggest a monthly budget with category allocations.' },
+                            { label: '⚠️ Am I over budget?', question: 'Am I over budget this month? How does my current spending compare to my budget?' },
+                            { label: '🍽️ Top spending categories', question: 'What are my top spending categories and am I spending too much in any of them?' },
+                        ].map(({ label, question }) => (
+                            <button
+                                key={label}
+                                onClick={() => handleOnDemandAnalysis(question)}
+                                disabled={analysisLoading}
+                                className="text-left px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-purple-50 hover:border-purple-200 transition-colors disabled:opacity-50"
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    {analysisLoading && (
+                        <div className="text-center py-4 text-sm text-purple-600 animate-pulse">🤖 Analysing your expenses...</div>
+                    )}
+                    {analysisError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{analysisError}</div>
+                    )}
+                    {analysisResult && !analysisLoading && (
+                        <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+                            <p className="text-sm text-purple-900 leading-relaxed whitespace-pre-wrap">{analysisResult}</p>
+                            <button
+                                onClick={() => setAnalysisResult(null)}
+                                className="mt-2 text-xs text-purple-400 hover:text-purple-600"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {loadingData ? (

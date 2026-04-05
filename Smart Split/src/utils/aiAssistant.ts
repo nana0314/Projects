@@ -144,6 +144,32 @@ export async function parseTextExpense(
 }
 
 /**
+ * Ask a natural language question about the user's expenses.
+ * Calls the askExpenseQuestion Cloud Function.
+ */
+export async function askExpenseQuestion(
+    question: string,
+    dateRange?: { start: string; end: string }
+): Promise<string> {
+    const fns = getFunctions();
+    const fn = httpsCallable<
+        { question: string; dateRange?: { start: string; end: string } },
+        { answer: string }
+    >(fns, 'askExpenseQuestion');
+    const result = await fn({ question, dateRange });
+    return result.data.answer;
+}
+
+/**
+ * Trigger on-demand insight generation for the current user.
+ */
+export async function generateInsightNow(): Promise<void> {
+    const fns = getFunctions();
+    const fn = httpsCallable(fns, 'generateInsightNow');
+    await fn({});
+}
+
+/**
  * Format a parsed expense into a human-readable summary string.
  */
 export function formatExpenseSummary(parsed: ParsedExpense): string {

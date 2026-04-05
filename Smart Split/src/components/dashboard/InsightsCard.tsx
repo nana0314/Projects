@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/src/context/AuthContext';
 import { getLatestInsight, getInsightSettings, setInsightEnabled } from '@/src/utils/insights';
+import { generateInsightNow } from '@/src/utils/aiAssistant';
 import { WeeklyInsight } from '@/src/types/insights';
 
 export default function InsightsCard() {
@@ -12,6 +13,7 @@ export default function InsightsCard() {
     const [enabled, setEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [toggling, setToggling] = useState(false);
+    const [generating, setGenerating] = useState(false);
 
     useEffect(() => {
         if (user) loadData();
@@ -31,6 +33,19 @@ export default function InsightsCard() {
             console.error('Failed to load insights:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerateNow = async () => {
+        if (!user) return;
+        setGenerating(true);
+        try {
+            await generateInsightNow();
+            await loadData(); // Refresh to show the new insight
+        } catch (err) {
+            console.error('Failed to generate insight:', err);
+        } finally {
+            setGenerating(false);
         }
     };
 
@@ -89,15 +104,24 @@ export default function InsightsCard() {
                     <div className="flex-1">
                         <h3 className="text-sm font-semibold text-purple-900">AI Insights Enabled</h3>
                         <p className="text-xs text-purple-700 mt-1">
-                            Your first weekly insight will be generated soon. Check back after this Sunday!
+                            Your first weekly insight will be generated soon. Or generate one now!
                         </p>
-                        <button
-                            onClick={handleToggle}
-                            disabled={toggling}
-                            className="mt-2 text-xs text-purple-500 underline hover:text-purple-700"
-                        >
-                            {toggling ? 'Disabling...' : 'Disable'}
-                        </button>
+                        <div className="flex items-center gap-3 mt-3">
+                            <button
+                                onClick={handleGenerateNow}
+                                disabled={generating}
+                                className="px-4 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {generating ? 'Generating...' : '⚡ Generate Now'}
+                            </button>
+                            <button
+                                onClick={handleToggle}
+                                disabled={toggling}
+                                className="text-xs text-purple-500 underline hover:text-purple-700"
+                            >
+                                {toggling ? 'Disabling...' : 'Disable'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
