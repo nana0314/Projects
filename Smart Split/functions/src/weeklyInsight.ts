@@ -43,6 +43,19 @@ export const generateInsightNow = functions.https.onCall(async (_data, context) 
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // Remove any duplicate insights for the current week before generating
+    const weekOfTs = admin.firestore.Timestamp.fromDate(weekAgo);
+    const dupes = await db
+        .collection(`users/${userId}/insights`)
+        .where('weekOf', '==', weekOfTs)
+        .get();
+    if (dupes.size > 1) {
+        const batch = db.batch();
+        dupes.docs.slice(1).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+    }
+
     await generateInsightForUser(userId, weekAgo, twoWeeksAgo, now);
     return { success: true };
 });
@@ -149,10 +162,17 @@ async function generateInsightForUser(
         tips = fallback.tips;
     }
 
-    // Save insight to Firestore
-    await db.collection(`users/${userId}/insights`).add({
+    // Save insight — update existing doc for this week if one exists, otherwise create new
+    const weekOfTs = admin.firestore.Timestamp.fromDate(weekAgo);
+    const insightsRef = db.collection(`users/${userId}/insights`);
+    const existing = await insightsRef
+        .where('weekOf', '==', weekOfTs)
+        .limit(1)
+        .get();
+
+    const payload = {
         userId,
-        weekOf: admin.firestore.Timestamp.fromDate(weekAgo),
+        weekOf: weekOfTs,
         totalSpent: thisWeekTotal,
         topCategory: topCategory?.[0] || 'Other',
         topCategoryAmount: topCategory?.[1] || 0,
@@ -161,8 +181,17 @@ async function generateInsightForUser(
         summary,
         personalExpenses,
         sharedExpenses,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (!existing.empty) {
+        await existing.docs[0].ref.set(payload, { merge: true });
+    } else {
+        await insightsRef.add({
+            ...payload,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    }
 }
 
 function calculateTotal(expenses: ExpenseData[], userId: string): number {
