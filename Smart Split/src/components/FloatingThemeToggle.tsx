@@ -15,25 +15,14 @@ export default function FloatingThemeToggle() {
     const pathname = usePathname();
     const { user } = useAuth();
 
-    const allowedPaths = ['/dashboard', '/friends', '/groups'];
-    const isAllowed =
-        pathname &&
-        user &&
-        allowedPaths.some((path) => pathname === path || pathname.startsWith(path + '/'));
+    const isAllowed = pathname === '/dashboard';
 
     if (!isAllowed) return null;
 
-    // On friends/groups the right column has "Add Expenses" ~112px — avoid overlap by placing theme on the left, same row as chat
-    const isDashboard = pathname === '/dashboard' || pathname?.startsWith('/dashboard/');
-    const positionStyle: CSSProperties = isDashboard
-        ? {
-              bottom: `calc(env(safe-area-inset-bottom, 0px) + ${THEME_BELOW_CHAT_OFFSET_PX}px)`,
-              right: '1rem',
-          }
-        : {
-              bottom: `calc(env(safe-area-inset-bottom, 0px) + ${CHAT_BOTTOM_OFFSET_PX}px)`,
-              left: '1rem',
-          };
+    const positionStyle: CSSProperties = {
+        bottom: `calc(env(safe-area-inset-bottom, 0px) + ${THEME_BELOW_CHAT_OFFSET_PX}px)`,
+        right: '1rem',
+    };
 
     return (
         <button
