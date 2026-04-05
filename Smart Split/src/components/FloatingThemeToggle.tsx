@@ -16,7 +16,7 @@ export default function FloatingThemeToggle() {
         <button
             onClick={toggleTheme}
             className="fixed z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 active:scale-90 hover:scale-105 bg-gray-800 dark:bg-yellow-400 text-yellow-300 dark:text-gray-900"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)', right: '1rem' }}
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 228px)', right: '1rem' }}
             title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             aria-label="Toggle theme"
         >
