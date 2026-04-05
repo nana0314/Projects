@@ -80,7 +80,7 @@ User query: "spicy noodle soup under RM12 near SS15"
 
 | Why this stands out                                                                         |
 | ------------------------------------------------------------------------------------------- |
-| Southeast Asia context (Shopee, Lazada, Carousell) — no Western tutorial uses these         |
+| Southeast Asia context (Shopee, Lazada) — no Western tutorial uses these         |
 | Agentic steps are obvious and verifiable: search → fetch → parse → compare → recommend      |
 | Output is instantly checkable — user can open the link and verify the price                 |
 | Shows real tool use: web search, page fetch, HTML parsing, LLM reasoning                    |
