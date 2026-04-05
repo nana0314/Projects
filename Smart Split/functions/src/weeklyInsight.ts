@@ -86,24 +86,24 @@ async function generateInsightForUser(
     twoWeeksAgo: Date,
     now: Date
 ): Promise<void> {
-    // Fetch this week's expenses
-    const thisWeekSnap = await db
+    // Fetch all user expenses in one query (array-contains + date range requires a
+    // composite index that may not exist — filter by date in code instead)
+    const allSnap = await db
         .collection('expenses')
         .where('participants', 'array-contains', userId)
-        .where('date', '>=', admin.firestore.Timestamp.fromDate(weekAgo))
-        .where('date', '<=', admin.firestore.Timestamp.fromDate(now))
         .get();
 
-    // Fetch last week's expenses
-    const lastWeekSnap = await db
-        .collection('expenses')
-        .where('participants', 'array-contains', userId)
-        .where('date', '>=', admin.firestore.Timestamp.fromDate(twoWeeksAgo))
-        .where('date', '<', admin.firestore.Timestamp.fromDate(weekAgo))
-        .get();
+    const twoWeeksAgoTs = admin.firestore.Timestamp.fromDate(twoWeeksAgo);
+    const weekAgoTs = admin.firestore.Timestamp.fromDate(weekAgo);
+    const nowTs = admin.firestore.Timestamp.fromDate(now);
 
-    const thisWeekExpenses = thisWeekSnap.docs.map((d) => d.data() as ExpenseData);
-    const lastWeekExpenses = lastWeekSnap.docs.map((d) => d.data() as ExpenseData);
+    const thisWeekExpenses = allSnap.docs
+        .map((d) => d.data() as ExpenseData)
+        .filter((e) => e.date >= weekAgoTs && e.date <= nowTs);
+
+    const lastWeekExpenses = allSnap.docs
+        .map((d) => d.data() as ExpenseData)
+        .filter((e) => e.date >= twoWeeksAgoTs && e.date < weekAgoTs);
 
     // Calculate metrics
     const thisWeekTotal = calculateTotal(thisWeekExpenses, userId);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import { getLatestInsight, getInsightSettings, setInsightEnabled } from '@/src/utils/insights';
 import { generateInsightNow } from '@/src/utils/aiAssistant';
@@ -9,6 +10,7 @@ import { WeeklyInsight } from '@/src/types/insights';
 
 export default function InsightsCard() {
     const { user } = useAuth();
+    const router = useRouter();
     const [insight, setInsight] = useState<WeeklyInsight | null>(null);
     const [enabled, setEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -41,10 +43,9 @@ export default function InsightsCard() {
         setGenerating(true);
         try {
             await generateInsightNow();
-            await loadData(); // Refresh to show the new insight
+            router.push('/insights'); // Navigate to insights page to show the result
         } catch (err) {
             console.error('Failed to generate insight:', err);
-        } finally {
             setGenerating(false);
         }
     };
