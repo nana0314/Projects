@@ -2,110 +2,7 @@
 
 ---
 
-## 3.1 RAG App (High Priority)
-
-**Recommended: University Lecture Notes RAG**
-
-
-| Why this stands out                                                                         |
-| ------------------------------------------------------------------------------------------- |
-| Truly private data — your own PDFs, no public API can answer from them                     |
-| Static by nature — RAG fits perfectly, no freshness problem                                 |
-| Solves a real pain point you have right now (Masters program)                               |
-| Chapter-level summary + cross-chapter Q&A shows hybrid retrieval skills                    |
-| Demo is credible: use your actual course material live in an interview                      |
-
-
-**What it does:**
-
-- User uploads lecture PDFs and tags them with metadata (course name, chapter number) on ingest
-- Chunks are stored with structured metadata: `{ source, course, chapter, page }`
-- User asks in natural language:
-  - *"Summarise Chapter 1 of Business Analytics"* → retrieves all Chapter 1 chunks → LLM writes summary
-  - *"What is the difference between OLAP and OLTP?"* → cross-chapter semantic search → LLM answers with source citations
-  - *"Give me 5 practice questions for Chapter 3"* → retrieves Chapter 3 content → LLM generates questions
-  - *"Explain gradient descent in simpler terms"* → finds relevant chunks → LLM reformulates for clarity
-- User can launch a **mini quiz session** per chapter:
-  - Retrieves all chunks for the selected chapter → LLM generates MCQ/true-false/short answer questions
-  - User picks difficulty (easy/medium/hard) before starting
-  - Answers are checked, explanations shown after each question with source page citations
-  - LLM self-verifies each answer is unambiguously supported by the retrieved text before returning
-
-**Flow:**
-
-```
-── INGEST (one-time per PDF) ──────────────────────────────────────────
-
-PDF upload + user tags (course="Business Analytics", chapter="Chapter 1")
-        │
-        ▼
-┌─────────────────────┐
-│  PDF Parser         │  PyMuPDF — extract text, detect headings
-│  (PyMuPDF)          │  Split into chunks (~500 tokens, 50 overlap)
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Embed chunks       │  OpenAI text-embedding-3-small
-│  + attach metadata  │  { source, course, chapter, page }
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Chroma vector store│  Persisted locally
-└─────────────────────┘
-
-── QUERY (every request) ──────────────────────────────────────────────
-
-User: "Summarise Chapter 1 of Business Analytics"
-        │
-        ▼
-┌─────────────────────┐
-│  Intent detection   │  Is this a chapter summary or a concept query?
-│  (simple classifier)│  Summary → filter by chapter first
-└──────────┬──────────┘
-           │
-     ┌─────┴──────┐
-     ▼            ▼
-Chapter filter  Semantic search
-(metadata)      (dense vector)
-     └─────┬──────┘
-           ▼
-┌─────────────────────┐
-│  Top-K chunks       │  Ranked by relevance within filtered set
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  LLM (GPT-4/Gemini) │  Answer / summarise / generate questions
-│  + source citations │  "Based on page 4 of Lecture 3..."
-└─────────────────────┘
-```
-
-**Data pipeline:**
-
-1. **Upload** — user drags in PDF + fills in course name + chapter tag (simple form)
-2. **Parse** — PyMuPDF extracts text page by page; detect section headings for smarter chunking
-3. **Chunk** — fixed-size (~500 tokens) with 50-token overlap; each chunk inherits file metadata
-4. **Embed** — `text-embedding-3-small` (cheap, fast, good quality)
-5. **Store** — Chroma persisted locally; each collection = one course
-6. **Hybrid retrieval** — metadata filter (chapter, course) + cosine similarity within filtered set
-7. **LLM answer** — GPT-4 or Gemini with retrieved chunks in context; always include source page citations
-
-**Key technical decisions to talk through in interviews:**
-
-- **Why RAG fits here perfectly** — data is private (your PDFs), static (lecture notes don't change), and large enough that stuffing everything into one prompt would exceed context limits and be expensive.
-- **Chunking strategy** — fixed-size vs semantic chunking. Fixed-size is predictable; semantic (split on headings) preserves concept boundaries better for lecture slides. Trade-off: heading detection reliability.
-- **Hybrid retrieval** — metadata filter first (narrows to the right chapter), then dense search within that subset. Pure semantic search alone would pull chunks from wrong chapters for summary queries.
-- **Chapter summary vs concept query** — different retrieval strategies. Summary: retrieve ALL chunks for a chapter (completeness matters). Concept query: retrieve top-K most relevant (precision matters). Simple intent classifier handles this.
-- **Citation grounding** — always return `source + page` with the answer. This makes the output verifiable and prevents hallucination from going unnoticed.
-- **Scaling** — Chroma local is fine for one user's notes. For multi-user, swap to Pinecone with user-scoped namespaces.
-
-**Stack:** Python, LangChain or LlamaIndex, PyMuPDF (PDF parsing), OpenAI `text-embedding-3-small`, Chroma (local) / Pinecone (prod), GPT-4 or Gemini, Next.js or Streamlit frontend for upload + chat UI.
-
----
-
-## 3.2 AI Agent Project
+## 3.1 AI Agent Project
 
 **Recommended: Price Comparison Agent (Southeast Asia)**
 
@@ -188,7 +85,6 @@ User: "Sony WH-1000XM5 under RM1200"
 
 | Category | Best Project                 | Differentiator                                                      |
 | -------- | ---------------------------- | ------------------------------------------------------------------- |
-| RAG      | University Lecture Notes RAG | Private PDFs; chapter summary + cross-chapter Q&A; hybrid retrieval |
 | Agent    | Price Comparison Agent (SEA) | Shopee/Lazada/Carousell; multi-step fetch, parse, trust-score       |
 
 
@@ -196,5 +92,4 @@ User: "Sony WH-1000XM5 under RM1200"
 
 ## Suggested Order
 
-1. **University Lecture Notes RAG** — Core RAG skills; private PDFs; chapter summary + concept Q&A
-2. **Price Comparison Agent** — Agentic tool use; SEA platforms; trust scoring
+1. **Price Comparison Agent** — Agentic tool use; SEA platforms; trust scoring
