@@ -25,6 +25,11 @@
   - *"What is the difference between OLAP and OLTP?"* → cross-chapter semantic search → LLM answers with source citations
   - *"Give me 5 practice questions for Chapter 3"* → retrieves Chapter 3 content → LLM generates questions
   - *"Explain gradient descent in simpler terms"* → finds relevant chunks → LLM reformulates for clarity
+- User can launch a **mini quiz session** per chapter:
+  - Retrieves all chunks for the selected chapter → LLM generates MCQ/true-false/short answer questions
+  - User picks difficulty (easy/medium/hard) before starting
+  - Answers are checked, explanations shown after each question with source page citations
+  - LLM self-verifies each answer is unambiguously supported by the retrieved text before returning
 
 **Flow:**
 
@@ -178,116 +183,18 @@ User: "Sony WH-1000XM5 under RM1200"
 
 ---
 
-## 3.3 Practical LLM App — Smart Split as LLM Fintech Expenses App
-
-**Current state (from codebase):**
-
-
-| Feature                          | Status      | Location                                             |
-| -------------------------------- | ----------- | ---------------------------------------------------- |
-| Chatbot (receipt + text parsing) | Working     | `AIChatModal`, `parseExpense` Cloud Function, Gemini |
-| Statistical charts               | Working     | Dashboard, `analytics.ts`                            |
-| AI Weekly Insights               | Not working | `weeklyInsight.ts` (Pub/Sub Sunday 09:00 UTC)        |
-
-
-**Why weekly insights likely fails:** Pub/Sub only runs when deployed; Vertex AI config; or no users with `aiInsightsEnabled=true`.
-
----
-
-**Approach: 3 phases to become "LLM Fintech Expenses App"**
-
-### Phase 1: Fix and unblock weekly insights
-
-- Add a **callable** Cloud Function `generateInsightNow(userId)` so you can trigger insight generation manually (for testing and on-demand use).
-- Verify Vertex AI: `GCLOUD_PROJECT`, service account permissions, Vertex AI API enabled.
-- Add "Generate insight now" button on dashboard/insights page — users get insights without waiting for Sunday.
-- Keep existing scheduled job for automatic weekly delivery.
-
-### Phase 2: Add conversational expense Q&A
-
-- Extend `AIChatModal` with a mode toggle: **Add expense** (existing) vs **Ask about expenses** (new).
-- New flow: user asks "What did I spend on food last month?" → client or new Cloud Function fetches analytics (reuse `analytics.ts`: `getCategoryBreakdown`, `getPeriodSpending`, etc.) → pass structured summary to Gemini → return natural language answer.
-- No RAG needed here — analytics are already structured. Pass JSON summary into the prompt.
-- New callable: `askExpenseQuestion(userId, question, dateRange?)` — fetches expenses, computes aggregates, calls Gemini with context, returns answer.
-
-### Phase 3: On-demand insights and recommendations
-
-- "Analyze my spending" button — same logic as weekly insight but for any date range (e.g. last 30 days).
-- "Suggest a budget" — Gemini receives category breakdown, suggests allocations.
-- "Am I over budget?" — pass budget vs actual from `BudgetVsActual` into Gemini.
-- Proactive alerts: "You're 40% over on dining this month" — can be shown in dashboard or via push later.
-
----
-
-**Architecture (data flow):**
-
-```
-User question ("What did I spend on groceries?")
-        │
-        ▼
-┌─────────────────────┐
-│ Callable Function   │  askExpenseQuestion(userId, question)
-│ or API route        │
-└─────────┬───────────┘
-          │
-          ├──► Fetch expenses (Firestore)
-          ├──► Compute analytics (reuse analytics.ts logic)
-          ├──► Build prompt: "User data: {categories, totals, ...}. Question: ..."
-          ├──► Call Gemini (Vertex AI)
-          └──► Return natural language answer
-```
-
----
-
-**Files to add/modify:**
-
-
-| File                                      | Change                                                     |
-| ----------------------------------------- | ---------------------------------------------------------- |
-| `functions/src/weeklyInsight.ts`          | Add `generateInsightNow` callable (manual trigger)         |
-| `functions/src/`                          | New `askExpenseQuestion.ts` — callable for Q&A             |
-| `src/components/AIChatModal.tsx`          | Add mode: Add expense vs Ask                               |
-| `src/utils/aiAssistant.ts`                | Add `askExpenseQuestion()` client call                     |
-| `app/insights/page.tsx` or `InsightsCard` | "Generate now" button                                      |
-| Dashboard                                 | Optional: "Ask AI" quick input or link to chat in Ask mode |
-
-
----
-
-**Stack:** Keep Gemini (Vertex AI) — already integrated. No new LLM provider needed.
-
----
-
 ## Summary Table
 
 
-| Category  | Best Project                          | Differentiator                                                    |
-| --------- | ------------------------------------- | ----------------------------------------------------------------- |
-| RAG       | University Lecture Notes RAG          | Private PDFs; chapter summary + cross-chapter Q&A; hybrid retrieval|
-| Agent     | Price Comparison Agent (SEA)          | Shopee/Lazada/Carousell; multi-step fetch, parse, trust-score     |
-| Practical | Smart Split as LLM Fintech App        | Fix insights; add Q&A; on-demand analysis                         |
+| Category | Best Project                 | Differentiator                                                      |
+| -------- | ---------------------------- | ------------------------------------------------------------------- |
+| RAG      | University Lecture Notes RAG | Private PDFs; chapter summary + cross-chapter Q&A; hybrid retrieval |
+| Agent    | Price Comparison Agent (SEA) | Shopee/Lazada/Carousell; multi-step fetch, parse, trust-score       |
 
 
 ---
 
 ## Suggested Order
 
-1. **Smart Split as LLM Fintech** — Already live; fix insights; add Ask mode; on-demand analysis
-2. **University Lecture Notes RAG** — Core RAG skills; private PDFs; chapter summary + concept Q&A
-3. **Price Comparison Agent** — Completes the trio; agentic tool use; SEA platforms; trust scoring
-
----
-
-## Project Todo List
-
-### 1. Wrap up Smart Split
-
-- 1.1 Implement Playwright tests
-- 1.2 Run tests
-- 1.3 Decide whether to publish on Apple/Google store
-
-### 2. Make Together into a website
-
-- 2.1 Get a domain and host it / publish on Apple or Google store
-- 2.2 Run tests after deployment
-
+1. **University Lecture Notes RAG** — Core RAG skills; private PDFs; chapter summary + concept Q&A
+2. **Price Comparison Agent** — Agentic tool use; SEA platforms; trust scoring
