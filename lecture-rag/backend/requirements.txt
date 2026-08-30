@@ -1,0 +1,12 @@
+llama-index
+llama-index-embeddings-openai
+llama-index-llms-openai
+llama-index-vector-stores-chroma
+llama-index-readers-file
+PyMuPDF>=1.25.0
+chromadb
+fastapi
+uvicorn
+python-multipart
+openai
+python-dotenv

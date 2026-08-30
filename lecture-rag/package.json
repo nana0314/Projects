@@ -1,0 +1,51 @@
+{
+  "name": "lecture-rag",
+  "version": "1.0.0",
+  "description": "AI-powered lecture notes RAG desktop app",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "package": "electron-vite build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "cross-env": "^10.1.0",
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.3.5"
+  },
+  "build": {
+    "appId": "com.lecturerag.app",
+    "productName": "Lecture RAG",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "out/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist_backend/backend/",
+        "to": "backend/"
+      }
+    ],
+    "win": {
+      "target": [
+        { "target": "dir", "arch": ["x64"] }
+      ],
+      "signAndEditExecutable": false
+    }
+  }
+}

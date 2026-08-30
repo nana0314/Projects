@@ -1,0 +1,23 @@
+.vercel
+.claude/
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies & build artifacts
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+**/dist/
+**/dist_backend/
+**/build/
+**/build_backend/
+**/out/
+**/release/
+**/.next/
+**/*.egg-info/
